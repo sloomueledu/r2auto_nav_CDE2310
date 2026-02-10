@@ -42,7 +42,7 @@ class LengthDetect(Node):
             return
         
         else:
-            lri = (self.laser_range[front_angle_range]<float(stop_dist)).nonzero() #finds the distance of the closest object
+            lri = (self.laser_range[front_angle_range]<=float(stop_dist)).nonzero() #finds the distance of the closest object
             self.get_logger().info('Distances: %s' % str(lri))
             pub_msg = String() #initialise a message to be sent to RPI
 
