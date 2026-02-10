@@ -7,7 +7,7 @@ import numpy as np
 
 # Define Constants
 stop_dist = 1.0
-front_angle = 30
+front_angle = 10
 front_angle_range = range(-front_angle, front_angle + 1,1)  # -30 to 30 degrees
 
 class LengthDetect(Node):
@@ -42,13 +42,15 @@ class LengthDetect(Node):
             return
         
         else:
-            lri = (self.laser_range[front_angle_range]<=float(stop_dist)).nonzero() #finds the distance of the closest object
+            lri = (self.laser_range[front_angle_range]<=stop_dist).nonzero() #finds the distance of the closest object
             self.get_logger().info('Distances: %s' % str(lri))
             pub_msg = String() #initialise a message to be sent to RPI
 
             if len(lri[0]) > 0: #if there are obstacles in front
-
-                self.get_logger().info('Obstacle detected at distance: %.2f meters at angle %d degrees' % (self.laser_range[lri[0][0]], np.nanargmin(self.laser_range[front_angle_range]) - front_angle)) #log the distance and angle of the closest obstacle in front
+                
+                frontdist = self.laser_range[front_angle_range]
+                closest_idx = np.nanargmin(frontdist)
+                self.get_logger().info('Closest distance in front cone: %.2f meters at angle %d degrees' % (frontdist[closest_idx], closest_idx - front_angle))
                 pub_msg.data = "1"
                 self.publisher_.publish(pub_msg)
             else:
