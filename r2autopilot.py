@@ -93,7 +93,7 @@ class RegulatedPurePursuit():
         #if yes, then we should get the robot to turn first and then refind the path
         #this is important as the turn could be at an intersection
 
-        if angle_diff > self.rotate_threshold:
+        if abs(angle_diff) > self.rotate_threshold:
             return None
         
         distance = math.sqrt(dx**2 + dy**2)
