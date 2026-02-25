@@ -7,7 +7,7 @@ import numpy as np
 
 # Define Constants
 stop_dist = 1.0
-front_angle = 10
+front_angle = 30
 front_angle_range = range(-front_angle, front_angle + 1,1)  # -30 to 30 degrees
 
 class LengthDetect(Node):

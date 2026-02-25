@@ -27,6 +27,7 @@ setup(
             'r2occupancy2 = auto_nav.r2occupancy2:main',
             'r2auto_nav = auto_nav.r2auto_nav:main',
             'r2e2 = auto_nav.r2e2:main',
+            'r2autopilot = auto_nav.r2autopilot:main',
         ],
     },
 )
