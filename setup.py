@@ -28,6 +28,7 @@ setup(
             'r2auto_nav = auto_nav.r2auto_nav:main',
             'r2e2 = auto_nav.r2e2:main',
             'r2autopilot = auto_nav.r2autopilot:main',
+            'r2livecode = auto_nav.r2livecode:main',
         ],
     },
 )
