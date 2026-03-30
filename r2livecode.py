@@ -20,9 +20,9 @@ from tf2_ros import TransformException, LookupException, ConnectivityException, 
 # from cv_bridge import CvBridge
 
 #CONSTANTS
-STOP_DISTANCE = 0.17
+STOP_DISTANCE = 0.30
 SIDE_THRESHOLD = 0.17
-GOAL_THRESHOLD = 0.1
+GOAL_THRESHOLD = 0.20
 SCANFILE = 'lidar.txt'
 MAPFILE = 'map.txt'
 
@@ -188,9 +188,15 @@ class AutoPilot(Node):
         self.goal = None
         self.state = 'PLANNING' #this is to keep track of the state of the robot
         self.rotation_start_time = None
+        self.escape_direction_locked = None
+        self.escape_start_time = None
+        self.escape_duration = 1.5   # Seconds to drive blindly away from a trap
+        self.escape_speed = 0.10     # Linear speed during escape (m/s)
         self.turning_timeout = 10.0 # seconds, this is to prevent the robot from getting stuck in a turning state for too long
         self.recovery_angle = None
-        self.turn_angle_by = (math.pi / 6) # threshold to turn the robot by, this is to help the robot to get unstuck when it is trapped in a corner or narrow path
+        self.turn_angle_by = (math.pi / 9) # threshold to turn the robot by, this is to help the robot to get unstuck when it is trapped in a corner or narrow path
+        self.wallinfdist = 3 # how far walls will influence the path, in terms of number of pooled cells. This is to help the robot to stay away from walls and navigate through narrow paths more effectively
+        self.maxshift = 1.5 # the maximum number of cells that a point in the path can be shifted by to avoid walls. This is to prevent the path from being shifted so much that it becomes inefficient or goes off course
 
         # Dividing up the LiDAR Data into 4 sections
         self.front = np.array([])
@@ -245,7 +251,7 @@ class AutoPilot(Node):
         # replace out of range readings (0.0) with nan
         self.laser_range[self.laser_range == 0] = np.nan
         total_points = len(self.laser_range)
-        self.get_logger().info('Number of LaserScan points: %d' % total_points)
+        # self.get_logger().info('Number of LaserScan points: %d' % total_points)
         np.savetxt(SCANFILE, self.laser_range)
 
         # 1. Calculate how many array indices represent 1 degree
@@ -253,7 +259,7 @@ class AutoPilot(Node):
 
         # 2. Define your desired FOVs in degrees
         # Example setup: 120° Front, 80° Left, 80° Right, 80° Back
-        front_fov = 120 
+        front_fov = 100
         
         # 3. Calculate index boundaries based on angles
         # Front is split across the 0-degree mark (beginning and end of array)
@@ -546,14 +552,10 @@ class AutoPilot(Node):
             y, x = int(check_node.y), int(check_node.x)
             shifty = 0
             shiftx = 0
-            
-            # to adjust if necessary
-            maxshift = 1 # this is the maximum a node will be shifted by
-            wallinfdist  = 2 # how far walls will influence the path
 
             # we will now determine how much we need to shift each point in the path by and the shift direction
-            for dy in range(-wallinfdist, wallinfdist + 1):
-                for dx in range(-wallinfdist, wallinfdist + 1):
+            for dy in range(-self.wallinfdist, self.wallinfdist + 1):
+                for dx in range(-self.wallinfdist, self.wallinfdist + 1):
                     ny, nx = y + dy, x + dx
 
                     # check if we have gone out of bounds
@@ -568,7 +570,7 @@ class AutoPilot(Node):
 
                             # scale the shift 
                             # inverse relationship: closer you are to the wall, more you get pusahed away
-                            magnitude = maxshift * (1.0 / shiftdist)
+                            magnitude = self.maxshift * (1.0 / shiftdist)
 
                             shiftx += dirx * magnitude
                             shifty += diry * magnitude
@@ -744,7 +746,7 @@ class AutoPilot(Node):
         """
 
     def turn_in_place(self, target_angle, current_angle):
-        self.get_logger().info('Turning in place.')
+        # self.get_logger().info('Turning in place.')
         anglediff = target_angle - current_angle
         anglediff = (anglediff + math.pi) % (2 * math.pi) - math.pi
 
@@ -754,60 +756,94 @@ class AutoPilot(Node):
         turning_speed = anglediff * kp_yaw
         twist.angular.z = max(-self.rpp_controller.max_angular_v, min(self.rpp_controller.max_angular_v, turning_speed))
         self.publisher_.publish(twist)
-        
+
+    def evaluate_escape_direction(self):
+        # Safely get the minimum distance for left and right
+        left_dist = np.nanmin(self.left) if len(self.left) > 0 and not np.isnan(self.left).all() else 0.0
+        right_dist = np.nanmin(self.right) if len(self.right) > 0 and not np.isnan(self.right).all() else 0.0
+
+        self.get_logger().info(f'Clearance - Left: {left_dist:.2f}m, Right: {right_dist:.2f}m')
+
+        MIN_SIDE_CLEARANCE = 0.35
+
+        # 1. Check if Left has the required clearance and is more open than Right
+        if left_dist >= MIN_SIDE_CLEARANCE and left_dist > right_dist:
+            self.get_logger().info('Left side clear. Nudging Counter-Clockwise.')
+            return self.turn_angle_by
+            
+        # 2. Check if Right has the required clearance
+        elif right_dist >= MIN_SIDE_CLEARANCE and right_dist >= left_dist:
+            self.get_logger().info('Right side clear. Nudging Clockwise.')
+            return -self.turn_angle_by
+            
+        # 3. Fallback: Both sides are too tight (< 0.35m). Pick the "least bad" option.
+        else:
+            if left_dist >= right_dist:
+                self.get_logger().info('Sides tight. Left is slightly better. Nudging Counter-Clockwise.')
+                return self.turn_angle_by
+            else:
+                self.get_logger().info('Sides tight. Right is slightly better. Nudging Clockwise.')
+                return -self.turn_angle_by
+
     def recoveryTurn(self):
+        current_angle = self.get_orientation()[2]
 
-            """
-            OKOK the idea is this:
+        if self.recovery_angle is None:
+            # 1. Check if we have already locked in an escape direction for this obstacle
+            if self.escape_direction_locked is None:
+                # We haven't picked a direction yet. Evaluate and LOCK it in.
+                self.escape_direction_locked = self.evaluate_escape_direction()
 
-            Basically, the bot tries to turn away from the obstacle by turning in place incrementally by self.turn_angle_by degrees and checking if the path in front is clear.
-
-            If it is, replan the path to the goal point since it would have probably deviated a bit
-            If it is not, it continues turning until the front is clear
+            # 2. Use the locked direction to calculate the target angle
+            raw_angle = current_angle + self.escape_direction_locked
             
-            If this is the thrid time it has had to do this, it will replan the path to a new goal..
-            """
+            # 3. Normalize strictly between -pi and pi
+            self.recovery_angle = (raw_angle + math.pi) % (2 * math.pi) - math.pi
+        
+        # Calculate the shortest angular distance to the target
+        angle_diff = self.recovery_angle - current_angle
+        angle_diff = (angle_diff + math.pi) % (2 * math.pi) - math.pi
+        
+        # Check if we are close enough to the target
+        if abs(angle_diff) <= 0.05: 
+            self.stopbot()
+            self.get_logger().info('Recovery Turn Complete. Checking path...')
+            self.recovery_angle = None
+            return True 
+        
+        # Turn in place to the calculated recovery angle
+        self.turn_in_place(self.recovery_angle, current_angle)
 
-            current_angle = self.get_orientation()[2]
-
-            if self.recovery_angle is None:
-                # Calculate the Recovery Angle
-                self.recovery_angle = (self.get_orientation()[2] + self.turn_angle_by) % (2 * math.pi)
-            
-            elif current_angle >= self.recovery_angle:
-                self.stopbot()
-                self.get_logger().info('Recovery Successful. Resuming normal operation.')
-                self.recovery_angle = None
-                return True #turn is successful, we can exit the recovery state
-            
-            #turn in place to the recovery angle
-            self.turn_in_place(self.recovery_angle, current_angle)
-
-            return False
+        return False
 
     def recoverySequence(self):
-            #check if I have made a full turn already
-            if self.recoveryTurn():
+        #check if I have made a full turn already
+        if self.recoveryTurn():
 
-                #check if My Front is Clear
-                if not self.checkObstacles():
-                    self.get_logger().info('Front Path is Clear after Recovery Turn.')
-                    self.stopbot()
-                    self.boink += 1
+            #check if My Front is Clear
+            if not self.checkObstacles():
+                self.get_logger().info('Front Path is Clear after Recovery Turn. Escaping...')
+                self.stopbot()
 
-                    if self.boink > 3:
-                        self.get_logger().warn('Path or Goal bad. Replanning new route...')
-                        self.goal = None
-                        self.boink = 0
-                    
-                    self.state = 'PLANNING'
+                # RESET THE DIRECTION LOCK HERE
+                self.escape_direction_locked = None 
 
-                else:
-                    self.get_logger().info('Front Path is Still Blocked after Recovery Turn. Continuing Recovery Turn...')
-                    self.recoveryTurn()
-            
+                # If we've hit walls 3 times trying to get to this frontier, drop it.
+                if self.boink >= 3:
+                    self.get_logger().warn('Stuck in a loop. Dropping current frontier goal...')
+                    self.goal = None
+                    self.boink = 0
+                
+                # Start the escape timer and change state
+                self.escape_start_time = self.get_clock().now()
+                self.state = 'ESCAPING'
+
             else:
+                self.get_logger().info('Front Path is Still Blocked. Continuing Recovery Turn...')
                 self.recoveryTurn()
+        
+        else:
+            self.recoveryTurn()
 
     """
         Currently, there are 4 main states (more will be added once the camera integration has been fully completed)
@@ -881,8 +917,7 @@ class AutoPilot(Node):
             self.boink += 1
             return
         
-        # Step 3: Get the RPP Command:
-
+        # Step 3: Get the RPP Command
         cmd_vel = self.rpp_controller.command(cur_x, cur_y, cur_yaw, self.path)
         target = self.rpp_controller.findpoint(cur_x, cur_y, self.path)
         self.publish_lookahead_marker(target) # Visualise what we are aiming for
@@ -899,22 +934,16 @@ class AutoPilot(Node):
                 self.state = 'PLANNING'
                 self.rotation_start_time = None
                 return
-            # pretty much the same code as finding angle and normalising
-            self.get_logger().info('Large Angle Detected. Rotating on the spot to align with path.')
-            target_angle = math.atan2(target.y - cur_y, target.x - cur_x)
-            self.turn_in_place(target_angle, cur_yaw)
+            
+            self.get_logger().info('Large Angle Detected. Switching to ALIGNING state.')
+            self.stopbot()
+            self.state = 'ALIGNING'
             return
+            
         self.publisher_.publish(cmd_vel)
 
     # This function is to control the state of the robot
     def controller(self):
-
-        """
-        In here, we will focus on 3 Main State:
-        1. PLANNING
-        2. DRIVING
-        3. RECOVERY
-        """
 
         if self.state == 'PLANNING':
             if self.goal is None:
@@ -922,19 +951,88 @@ class AutoPilot(Node):
             else:
                 self.path = self.planroute(goal=self.goal)
             
-            if self.path and len(self.path) > 0: # This is a safety check to make sure a valid path has been found
-                self.goal = self.path[-1] # If a goal point has already been established, This WILL NOT override it!
+            if self.path and len(self.path) > 0: 
+                self.goal = self.path[-1] 
                 self.state = "DRIVING"
                 self.get_logger().info('Planning Complete! Switching to DRIVING state')
             else:
-                self.get_logger().warn('No valid path found. Retrying...')
+                self.get_logger().warn('No valid path found. Dropping unreachable goal and retrying...')
                 self.stopbot()
+                self.goal = None # <-- THE FIX: Clear the impossible goal
+                self.boink = 0   # Reset the boink counter just in case
 
         elif self.state == 'DRIVING':
             self.mover()
         
+        elif self.state == 'ALIGNING':
+            try:
+                cur_x, cur_y, cur_yaw = self.get_orientation()
+            except Exception as e:
+                return
+
+            if not self.path or len(self.path) == 0:
+                self.state = 'PLANNING'
+                return
+
+            # Find target point and calculate angle
+            target = self.rpp_controller.findpoint(cur_x, cur_y, self.path)
+            target_angle = math.atan2(target.y - cur_y, target.x - cur_x)
+            
+            angle_diff = target_angle - cur_yaw
+            angle_diff = (angle_diff + math.pi) % (2 * math.pi) - math.pi
+
+            # Check if alignment is complete (within ~8 degrees)
+            if abs(angle_diff) <= 0.15: 
+                self.stopbot()
+                self.get_logger().info('Alignment complete. Resuming DRIVING.')
+                self.state = 'DRIVING'
+                self.rotation_start_time = None 
+            else:
+                # Check timeout
+                now = self.get_clock().now()
+                if self.rotation_start_time is not None and (now - self.rotation_start_time).nanoseconds / 1e9 > self.turning_timeout:
+                    self.get_logger().warn('Rotation timeout exceeded. Replanning...')
+                    self.stopbot()
+                    self.state = 'PLANNING'
+                    self.rotation_start_time = None
+                    return
+
+                # CRITICAL FIX: Only trigger recovery during rotation if critically close
+                if len(self.front) > 0 and np.nanmin(self.front) <= SIDE_THRESHOLD:
+                    self.get_logger().warn('Wall critically close during alignment spin! Recovering...')
+                    self.stopbot()
+                    self.state = 'RECOVERY'
+                    return
+
+                self.turn_in_place(target_angle, cur_yaw)
+
         elif self.state == 'RECOVERY':
-            self.recoverySequence()          
+            self.recoverySequence()     
+
+        elif self.state == 'ESCAPING':
+            now = self.get_clock().now()
+            elapsed_time = (now - self.escape_start_time).nanoseconds / 1e9
+            
+            # Drive forward to physically distance from the wall
+            if elapsed_time < self.escape_duration:
+                # 1. Print a countdown so you know the loop is actually sustaining the command
+                self.get_logger().info(f'Escaping... Time remaining: {self.escape_duration - elapsed_time:.2f}s')
+                
+                twist = Twist()
+                twist.linear.x = float(self.escape_speed)
+                twist.angular.z = 0.0
+                self.publisher_.publish(twist)
+                
+                # 2. CRITICAL FIX: Bypass checkObstacles() and use a much smaller collision threshold (0.17m)
+                # This gives the robot a 13cm "buffer" to drive forward without instantly panicking.
+                if len(self.front) > 0 and np.nanmin(self.front) <= SIDE_THRESHOLD:
+                    self.get_logger().warn('Wall critically close during escape! Aborting escape drive.')
+                    self.stopbot()
+                    self.state = 'RECOVERY'
+            else:
+                self.get_logger().info('Escape drive complete. Replanning...')
+                self.stopbot()
+                self.state = 'PLANNING'
     
 def main(args=None):
     rclpy.init(args=args)
