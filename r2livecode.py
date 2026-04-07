@@ -20,8 +20,8 @@ from tf2_ros import TransformException, LookupException, ConnectivityException, 
 # from cv_bridge import CvBridge
 
 #CONSTANTS
-STOP_DISTANCE = 0.30
-SIDE_THRESHOLD = 0.17
+STOP_DISTANCE = 0.35
+SIDE_THRESHOLD = 0.20
 GOAL_THRESHOLD = 0.20
 SCANFILE = 'lidar.txt'
 MAPFILE = 'map.txt'
@@ -52,7 +52,7 @@ def euler_from_quaternion(x, y, z, w):
 class RegulatedPurePursuit():
     def __init__(self):
         #these are to be fine tuned once testing begins
-        self.lookaheaddist = 0.2
+        self.lookaheaddist = 0.1
         self.max_speed = 0.22
         self.min_speed = 0.05
         self.max_angular_v = 0.2
@@ -60,9 +60,6 @@ class RegulatedPurePursuit():
         self.rotate_threshold = 0.5 #anything >28 degrees
     
     def findpoint(self, cur_x, cur_y, path):
-    # Default to the very last point if we can't find one in range
-        target = path[-1]
-        
         for node in path:
             dist = math.sqrt((node.x - cur_x)**2 + (node.y - cur_y)**2)
             # We want the first point that is OUTSIDE the lookahead circle
@@ -192,7 +189,7 @@ class AutoPilot(Node):
         self.escape_start_time = None
         self.escape_duration = 1.5   # Seconds to drive blindly away from a trap
         self.escape_speed = 0.10     # Linear speed during escape (m/s)
-        self.turning_timeout = 10.0 # seconds, this is to prevent the robot from getting stuck in a turning state for too long
+        self.turning_timeout = 20.0 # seconds, this is to prevent the robot from getting stuck in a turning state for too long
         self.recovery_angle = None
         self.turn_angle_by = (math.pi / 9) # threshold to turn the robot by, this is to help the robot to get unstuck when it is trapped in a corner or narrow path
         self.wallinfdist = 3 # how far walls will influence the path, in terms of number of pooled cells. This is to help the robot to stay away from walls and navigate through narrow paths more effectively
@@ -349,21 +346,19 @@ class AutoPilot(Node):
         pbotloc_x = -1
         pbotloc_y = -1
 
-        try:
-            timeout = rclpy.time.Duration(seconds=2.0) #implement a timeout to ensure that the robot doesn't get stuck here
-            
+        try:        
             # these are placeholders for the pooled goal coords
             pgoal_x = -1
             pgoal_y = -1
 
             # get the actual bot location in the original map
-            if self.tf_buffer.can_transform('map', 'base_link', rclpy.time.Time(), timeout):
+            if self.tf_buffer.can_transform('map', 'base_link', rclpy.time.Time()):
                 cur_x, cur_y, _ = self.get_orientation()
                 obotloc_x = (cur_x - self.origin.x)/self.res
                 obotloc_y = (cur_y - self.origin.y)/self.res
                 
-                pbotloc_x = min(int(obotloc_x) // 3, occ_pooled_grid.shape[1] - 1)
-                pbotloc_y = min(int(obotloc_y) // 3, occ_pooled_grid.shape[0] - 1)
+                pbotloc_x = max(0, min(int(obotloc_x) // 3, occ_pooled_grid.shape[1] - 1))
+                pbotloc_y = max(0, min(int(obotloc_y) // 3, occ_pooled_grid.shape[0] - 1))
                 potential_cells = [(pbotloc_y,pbotloc_x)]
                 
                 # we shall check if the pooled coords shows that the bot is in a wall here
@@ -717,8 +712,10 @@ class AutoPilot(Node):
             self.get_logger().info(f'No Valid LiDAR data')
             return False
 
+        front_dist = np.nanmin(self.front) if len(self.front) > 0 and not np.isnan(self.front).all() else float('inf')
+
         # Front Check
-        if np.nanmin(self.front) <= STOP_DISTANCE:
+        if front_dist <= STOP_DISTANCE:
             self.stopbot()
             self.get_logger().info(f'Obstacle Infront at angle: {np.argmin(self.front)}! Recovering...')
             self.state = 'RECOVERY'
