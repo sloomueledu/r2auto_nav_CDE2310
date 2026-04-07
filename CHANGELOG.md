@@ -9,4 +9,4 @@ FEATURE UPDATE: Added r2livecode.py - Navigation Algorithm for Final Maze
 **Date:** 7 April 2026  
 **Description**  
 FEATURE UPDATE: Added r2dockingtest.py for robot docking [WORK IN PROGRESS]  
-REFINEMENTS: Parameter Updates to r2livecode  
+REFINEMENTS: Parameter Updates to r2livecode for better navigation reliablitity  
