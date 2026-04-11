@@ -2,9 +2,10 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PoseStamped
+from ros2_aruco_interfaces.msg import ArucoMarkers
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import LaserScan
-from nav_msgs.msg import OccupancyGrid
+from nav_msgs.msg import OccupancyGrid, Odometry
 from nav_msgs.msg import Path
 from std_msgs.msg import String
 from visualization_msgs.msg import Marker
@@ -12,12 +13,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 import random
-# import cmath
-# import time
 import tf2_ros
 from tf2_ros import TransformException, LookupException, ConnectivityException, ExtrapolationException
-# import cv2
-# from cv_bridge import CvBridge
 
 #CONSTANTS
 STOP_DISTANCE = 0.35
@@ -131,7 +128,6 @@ class MapNode():
         [x,y-1]     [PARENT]    [x,y+1]
         [x+1,y-1]   [x+1,y]     [x+1,y+1]
 
-        """
         for dx in [-1, 0, 1]:
             for dy in [-1, 0,1]:
                 if dx == 0 and dy == 0:
@@ -141,6 +137,15 @@ class MapNode():
                 #this check is to prevent reading off the map
                 if 0 <= nx < max_x and 0 <= ny < max_y:
                     neighbours.append(MapNode(nx, ny, parent=self))
+        return neighbours
+        """
+        neighbours = []
+        # Strictly Up, Down, Left, Right (No diagonals to prevent wall clipping)
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nx = self.x + dx
+            ny = self.y + dy
+            if 0 <= nx < max_x and 0 <= ny < max_y:
+                neighbours.append(MapNode(nx, ny, parent=self))
         return neighbours
 
 """
@@ -169,6 +174,7 @@ class AutoPilot(Node):
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer,self)
 
         self.publisher_ = self.create_publisher(Twist,'cmd_vel',10)
+        self.gpio_pub = self.create_publisher(String, '/gpio_command', 10)  # For signaling docking status
         
         # This is to help us see our goal point on RVis
         self.marker_publisher = self.create_publisher(Marker,'goal_marker',10)
@@ -187,13 +193,63 @@ class AutoPilot(Node):
         self.rotation_start_time = None
         self.escape_direction_locked = None
         self.escape_start_time = None
-        self.escape_duration = 1.5   # Seconds to drive blindly away from a trap
-        self.escape_speed = 0.10     # Linear speed during escape (m/s)
+        self.escape_duration = 2.0  # Seconds to drive blindly away from a trap
+        self.escape_speed = 0.15     # Linear speed during escape (m/s)
         self.turning_timeout = 20.0 # seconds, this is to prevent the robot from getting stuck in a turning state for too long
         self.recovery_angle = None
         self.turn_angle_by = (math.pi / 9) # threshold to turn the robot by, this is to help the robot to get unstuck when it is trapped in a corner or narrow path
         self.wallinfdist = 3 # how far walls will influence the path, in terms of number of pooled cells. This is to help the robot to stay away from walls and navigate through narrow paths more effectively
         self.maxshift = 1.5 # the maximum number of cells that a point in the path can be shifted by to avoid walls. This is to prevent the path from being shifted so much that it becomes inefficient or goes off course
+
+        # STATION TRACKERS
+        self.valid_station_ids = [0, 1]
+        self.responseHeard = False
+        self.current_docking_id = None
+        self.STATION_A_COMPLETED = False
+        self.STATION_B_COMPLETED = False
+
+        self.piResponseSub = self.create_subscription(String, 'rpi_response', self.pi_response_callback, 10)
+        self.piResponseSub #prevent unused variable warning
+
+        # ARUCO DOCKING
+        self.marker_sub = self.create_subscription(
+            ArucoMarkers, '/usbcam1_markers', self.marker_callback, 10
+        )
+        self.marker_sub #prevent unused variable warning
+
+        # ── Docking Variables ──
+        self.k_rho = 0.3
+        self.k_alpha = 0.8
+        self.k_beta = -0.15
+        self.target_dist = 0.25
+        self.desired_final_heading = 0.0
+        self.docking_max_v = 0.12
+        self.docking_max_w = 0.50
+        
+        self.fov_loss_timeout = 1.5
+        self.last_known_alpha = None
+        self.last_known_rho = None
+        self.recovery_w = 0.25
+        
+        self.rho_switch_threshold = 0.04
+        self.alpha_tolerance = 0.05 
+        
+        self.commandSent = False
+        self.marker_x = None
+        self.marker_z = None
+        self.last_seen = self.get_clock().now()
+        self.marker_visible = False
+        self.pre_recovery_state = None
+
+        # ── Undocking Variables ──
+        self.undock_start_time = None
+        self.undock_duration = 2.0  # Seconds to reverse
+        self.undock_speed = -0.08   # Safe, slow reverse speed (m/s)
+
+        # ── Searching State Variables ──
+        self.search_last_yaw = None
+        self.search_yaw_accumulated = 0.0
+        self.search_spin_speed = 0.10  
 
         # Dividing up the LiDAR Data into 4 sections
         self.front = np.array([])
@@ -232,6 +288,23 @@ class AutoPilot(Node):
         2. RPI Controller for GPIO Commands
         """
 
+    def pi_response_callback(self, msg):
+        response = msg.data
+        self.get_logger().info(f'Received response from RPI: {response}')
+        if response == 'A COMPLETE':
+            self.STATION_A_COMPLETED = True
+            self.responseHeard = True
+            self.get_logger().info('Station A has been marked as completed.')
+        elif response == 'B COMPLETE':
+            self.STATION_B_COMPLETED = True
+            self.responseHeard = True
+            self.get_logger().info('Station B has been marked as completed.')
+
+        if self.STATION_A_COMPLETED and self.STATION_B_COMPLETED:
+            self.get_logger().info('MISSION COMPLETE!.')
+            self.state = 'MISSION_COMPLETE'
+            # Here you can set a new goal for returning to base or performing any final task
+
     def occ_callback(self,msg):
         # Get map metadata
         self.res = msg.info.resolution
@@ -256,7 +329,7 @@ class AutoPilot(Node):
 
         # 2. Define your desired FOVs in degrees
         # Example setup: 120° Front, 80° Left, 80° Right, 80° Back
-        front_fov = 100
+        front_fov = 80
         
         # 3. Calculate index boundaries based on angles
         # Front is split across the 0-degree mark (beginning and end of array)
@@ -281,6 +354,53 @@ class AutoPilot(Node):
         right_start = back_end
         right_end = total_points - half_front
         self.right = self.laser_range[right_start:right_end]
+    
+    def marker_callback(self, msg):
+        if not msg.marker_ids:
+            self.marker_visible = False
+            return
+
+        closest_idx = None
+        min_distance = float('inf')
+        chosen_id = None
+
+        # Greedy Distance: Find the closest VALID marker
+        for i, detected_id in enumerate(msg.marker_ids):
+            if detected_id in self.valid_station_ids:
+                pose = msg.poses[i]
+                dist = math.sqrt(pose.position.x**2 + pose.position.z**2)
+                
+                if dist < min_distance:
+                    min_distance = dist
+                    closest_idx = i
+                    chosen_id = detected_id
+
+        if closest_idx is None:
+            self.marker_visible = False
+            return
+        
+        if dist > 2.5:
+            self.marker_visible = False
+            return
+        
+        target_pose = msg.poses[closest_idx]
+        self.marker_x = target_pose.position.x
+        self.marker_z = target_pose.position.z
+        self.last_seen = self.get_clock().now()
+        self.marker_visible = True
+        self.current_docking_id = chosen_id
+
+        self.last_known_alpha = math.atan2(self.marker_x, self.marker_z)
+        self.last_known_rho = math.sqrt(self.marker_x**2 + self.marker_z**2) - self.target_dist
+
+        # Hijack Navigation if we spot a target marker
+        if self.state in ['PLANNING', 'DRIVING', 'ALIGNING', 'SEARCHING'] and self.marker_visible:
+            self.get_logger().warn(f'Target Station ({self.current_docking_id}) Detected! Taking over...')
+            self.stopbot()
+            self.path = [] 
+            self.goal = None
+            self.search_last_yaw = None 
+            self.state = 'DOCKING_APPROACH'
 
     def get_orientation(self):
         transform = self.tf_buffer.lookup_transform('map', 'base_link', rclpy.time.Time())
@@ -378,7 +498,7 @@ class AutoPilot(Node):
                         if dist < min_dist:
                             min_dist = dist
                             pbotloc_y, pbotloc_x = cell
-                
+                state = 'PLANNING' # go back to planning state to find the next station
                 # at this point, we would have identified here the bot is in the pooled map
                 self.get_logger().info(f'Robot Location on Pooled Map: x={pbotloc_x}, y={pbotloc_y}')
                 self.get_logger().info(f'Robot Location on Actual Map: x={obotloc_x}, y={obotloc_y}')
@@ -405,7 +525,6 @@ class AutoPilot(Node):
         3. Found where our goal lies in the pooled map
         4. Created a 'cost-map' of sorts that tells us where the walls are and the distance of cells from their respective nearest wall
         """
-
         # at this point, we are now ready to commence the BFS to
         # 1. Find the nearest frontier to go to (if no goal point)
         # 2. Get the path to the goal point
@@ -563,7 +682,7 @@ class AutoPilot(Node):
                             dirx = -dx / shiftdist
                             diry = -dy / shiftdist
 
-                            # scale the shift 
+                            # scale the shift pi_response'
                             # inverse relationship: closer you are to the wall, more you get pusahed away
                             magnitude = self.maxshift * (1.0 / shiftdist)
 
@@ -620,7 +739,10 @@ class AutoPilot(Node):
             path = smoothpath
         
         # This function call helps to visualise the planned path in RVis
-        self.publish_planned_path(path)
+        self.publish_planned_path(path)# ── Undocking Variables ──
+        self.undock_start_time = None
+        self.undock_duration = 2.0  # Seconds to reverse
+        self.undock_speed = -0.08   # Safe, slow reverse speed (m/s)
         return path
     
     # This function is to publish our found goal point which is to be marked out on RVis
@@ -655,7 +777,6 @@ class AutoPilot(Node):
         marker.color.r = 1.0 
         marker.color.g = 0.0 
         marker.color.b = 0.0 
-        
         self.marker_publisher.publish(marker)
 
     # This function helps us visualised the planned path in RVis
@@ -706,41 +827,23 @@ class AutoPilot(Node):
 
     # This function is to detect for obstacles all around the robot
     def checkObstacles(self):
-        # If there is an obstacle detected, return True, else, return false
-
         if len(self.laser_range) == 0 or np.isnan(self.laser_range).all():
-            self.get_logger().info(f'No Valid LiDAR data')
             return False
 
         front_dist = np.nanmin(self.front) if len(self.front) > 0 and not np.isnan(self.front).all() else float('inf')
 
-        # Front Check
         if front_dist <= STOP_DISTANCE:
+            # ── SAVE THE CURRENT STATE BEFORE SWITCHING ──
+            self.pre_recovery_state = self.state 
+            
             self.stopbot()
-            self.get_logger().info(f'Obstacle Infront at angle: {np.argmin(self.front)}! Recovering...')
-            self.state = 'RECOVERY'
-            return True
-
-        """
-        if np.nanmin(self.left) <= SIDE_THRESHOLD:
-            self.stopbot()
-            self.get_logger().info(f'Obstacle Left at angle: {np.argmin(self.left)}! Recovering...')
-            self.state = 'RECOVERY'
-            return True
-        if np.nanmin(self.back) <= SIDE_THRESHOLD:
-            self.stopbot()
-            self.get_logger().info(f'Obstacle Behind at angle: {np.argmin(self.back)}! Recovering...')
-            self.state = 'RECOVERY'
-            return True
-
-        if np.nanmin(self.right) <= SIDE_THRESHOLD:
-            self.stopbot()
-            self.get_logger().info(f'Obstacle Right at angle: {np.argmin(self.right)}! Recovering...')
-            self.state = 'RECOVERY'
-            return True
-        
+            self.get_logger().info(f'Obstacle detected while in {self.state}!')
+            if self.state not in ['RECOVERY', 'ESCAPING']:
+                self.pre_recovery_state = self.state 
+                self.stopbot()
+                self.get_logger().info(f'Recovering...')
+                self.state = 'RECOVERY'
         return False
-        """
 
     def turn_in_place(self, target_angle, current_angle):
         # self.get_logger().info('Turning in place.')
@@ -749,7 +852,7 @@ class AutoPilot(Node):
 
         twist = Twist()
         twist.linear.x = 0.0
-        kp_yaw = 0.6
+        kp_yaw = 0.8
         turning_speed = anglediff * kp_yaw
         twist.angular.z = max(-self.rpp_controller.max_angular_v, min(self.rpp_controller.max_angular_v, turning_speed))
         self.publisher_.publish(twist)
@@ -810,7 +913,6 @@ class AutoPilot(Node):
         
         # Turn in place to the calculated recovery angle
         self.turn_in_place(self.recovery_angle, current_angle)
-
         return False
 
     def recoverySequence(self):
@@ -905,7 +1007,7 @@ class AutoPilot(Node):
                 self.path = []
                 self.goal = None
                 self.boink = 0
-                self.state = 'PLANNING'
+                self.state = 'SEARCHING'
                 return
         
         # Step 2: Check for obstacles
@@ -939,24 +1041,123 @@ class AutoPilot(Node):
             
         self.publisher_.publish(cmd_vel)
 
-    # This function is to control the state of the robot
-    def controller(self):
+    # ── New Docking & Searching State Methods ───────────────────────────
+    def search_marker_logic(self):
+        self.get_logger().info('Searching for marker... Spinning in place.')
+        try:
+            _, _, cur_yaw = self.get_orientation()
+        except Exception:
+            return
 
-        if self.state == 'PLANNING':
-            if self.goal is None:
-                self.path = self.planroute(goal=None)
+        if self.search_last_yaw is not None:
+            delta_yaw = cur_yaw - self.search_last_yaw
+            delta_yaw = (delta_yaw + math.pi) % (2 * math.pi) - math.pi
+            self.search_yaw_accumulated += abs(delta_yaw)
+
+        self.search_last_yaw = cur_yaw
+
+        if self.search_yaw_accumulated >= (2 * math.pi):
+            self.get_logger().warn('Completed 360° search. No target marker found. Resuming exploration.')
+            self.stopbot()
+            self.state = 'PLANNING'
+            self.search_last_yaw = None
+            return
+
+        twist = Twist()
+        twist.linear.x = 0.0
+        twist.angular.z = self.search_spin_speed
+        self.publisher_.publish(twist)
+
+    def docking_approach_logic(self):
+        self.get_logger().info('Approaching Marker...')
+        elapsed = (self.get_clock().now() - self.last_seen).nanoseconds / 1e9
+
+        current_dist_to_dock = float('inf')
+        if self.marker_visible and self.marker_x is not None:
+            current_dist_to_dock = self.marker_z
+
+        # Collision avoidance integration
+        ignore_obstacles_dist = 0.50 
+        if current_dist_to_dock > ignore_obstacles_dist:
+            if self.checkObstacles():
+                self.get_logger().warn('Obstacle blocking dock! Aborting approach -> RECOVERY.')
+                self.current_docking_id = None 
+                return
+
+        # Docking Controller Math
+        if self.marker_visible and self.marker_x is not None:
+            x, z = self.marker_x, self.marker_z
+            rho = math.sqrt(x**2 + z**2) - self.target_dist
+            alpha = math.atan2(x, z)
+            beta = self.desired_final_heading - alpha
+
+            v = self.k_rho * rho
+            w = -(self.k_alpha * alpha + self.k_beta * beta)
+
+            v = max(min(v, self.docking_max_v), -self.docking_max_v)
+            w = max(min(w, self.docking_max_w), -self.docking_max_w)
+
+            if abs(rho) < self.rho_switch_threshold:
+                if abs(alpha) > self.alpha_tolerance:
+                    self.state = 'DOCKING_FINAL_ALIGN'
+                    self.get_logger().info('Target distance reached. Final alignment...')
+                else:
+                    self.state = 'STATION'
+                    self.get_logger().info('✓ Docking complete. Perfectly aligned.')
+                return
+
+            cmd = Twist()
+            cmd.linear.x = v
+            cmd.angular.z = w
+            self.publisher_.publish(cmd)
+            return
+
+        if elapsed > self.fov_loss_timeout:
+            self.stopbot()
+            self.get_logger().warn('Marker lost during approach. Dropping back to planning.')
+            self.state = 'PLANNING' 
+            return
+
+        # FOV recovery
+        if self.last_known_alpha is not None:
+            cmd = Twist()
+            if self.last_known_rho is not None and self.last_known_rho < 0.1:
+                cmd.linear.x = 0.0
             else:
-                self.path = self.planroute(goal=self.goal)
-            
+                cmd.linear.x = 0.04
+            cmd.angular.z = -math.copysign(self.recovery_w, self.last_known_alpha)
+            self.publisher_.publish(cmd)
+
+    def docking_final_align_logic(self):
+        self.get_logger().info('Final alignment with marker...')
+        if not self.marker_visible or self.marker_x is None:
+            self.stopbot()
+            self.state = 'STATION'
+            return
+
+        alpha = math.atan2(self.marker_x, self.marker_z)
+        
+        if abs(alpha) > self.alpha_tolerance:
+            cmd = Twist()
+            w = -(0.8 * alpha) 
+            cmd.angular.z = max(min(w, self.docking_max_w), -self.docking_max_w)
+            self.publisher_.publish(cmd)
+        else:
+            self.stopbot()
+            self.state = 'STATION'
+            self.get_logger().info("✓ Final alignment complete.")
+
+    # ── The Master Control Loop ─────────────────────────────────────────
+    def controller(self):
+        if self.state == 'PLANNING':
+            self.path = self.planroute(goal=None if self.goal is None else self.goal)
             if self.path and len(self.path) > 0: 
                 self.goal = self.path[-1] 
                 self.state = "DRIVING"
-                self.get_logger().info('Planning Complete! Switching to DRIVING state')
             else:
-                self.get_logger().warn('No valid path found. Dropping unreachable goal and retrying...')
                 self.stopbot()
-                self.goal = None # <-- THE FIX: Clear the impossible goal
-                self.boink = 0   # Reset the boink counter just in case
+                self.goal = None 
+                self.boink = 0   
 
         elif self.state == 'DRIVING':
             self.mover()
@@ -964,43 +1165,33 @@ class AutoPilot(Node):
         elif self.state == 'ALIGNING':
             try:
                 cur_x, cur_y, cur_yaw = self.get_orientation()
-            except Exception as e:
-                return
+            except Exception: return
 
             if not self.path or len(self.path) == 0:
                 self.state = 'PLANNING'
                 return
 
-            # Find target point and calculate angle
             target = self.rpp_controller.findpoint(cur_x, cur_y, self.path)
             target_angle = math.atan2(target.y - cur_y, target.x - cur_x)
-            
             angle_diff = target_angle - cur_yaw
             angle_diff = (angle_diff + math.pi) % (2 * math.pi) - math.pi
 
-            # Check if alignment is complete (within ~8 degrees)
             if abs(angle_diff) <= 0.15: 
                 self.stopbot()
-                self.get_logger().info('Alignment complete. Resuming DRIVING.')
                 self.state = 'DRIVING'
                 self.rotation_start_time = None 
             else:
-                # Check timeout
                 now = self.get_clock().now()
                 if self.rotation_start_time is not None and (now - self.rotation_start_time).nanoseconds / 1e9 > self.turning_timeout:
-                    self.get_logger().warn('Rotation timeout exceeded. Replanning...')
                     self.stopbot()
                     self.state = 'PLANNING'
                     self.rotation_start_time = None
                     return
 
-                # CRITICAL FIX: Only trigger recovery during rotation if critically close
                 if len(self.front) > 0 and np.nanmin(self.front) <= SIDE_THRESHOLD:
-                    self.get_logger().warn('Wall critically close during alignment spin! Recovering...')
                     self.stopbot()
                     self.state = 'RECOVERY'
                     return
-
                 self.turn_in_place(target_angle, cur_yaw)
 
         elif self.state == 'RECOVERY':
@@ -1010,26 +1201,98 @@ class AutoPilot(Node):
             now = self.get_clock().now()
             elapsed_time = (now - self.escape_start_time).nanoseconds / 1e9
             
-            # Drive forward to physically distance from the wall
             if elapsed_time < self.escape_duration:
-                # 1. Print a countdown so you know the loop is actually sustaining the command
-                self.get_logger().info(f'Escaping... Time remaining: {self.escape_duration - elapsed_time:.2f}s')
-                
                 twist = Twist()
                 twist.linear.x = float(self.escape_speed)
                 twist.angular.z = 0.0
                 self.publisher_.publish(twist)
                 
-                # 2. CRITICAL FIX: Bypass checkObstacles() and use a much smaller collision threshold (0.17m)
-                # This gives the robot a 13cm "buffer" to drive forward without instantly panicking.
                 if len(self.front) > 0 and np.nanmin(self.front) <= SIDE_THRESHOLD:
-                    self.get_logger().warn('Wall critically close during escape! Aborting escape drive.')
                     self.stopbot()
                     self.state = 'RECOVERY'
             else:
-                self.get_logger().info('Escape drive complete. Replanning...')
                 self.stopbot()
+                
+                # ── REDIRECT BASED ON MEMORY ──
+                if self.pre_recovery_state in ['DOCKING_APPROACH', 'DOCKING_FINAL_ALIGN']:
+                    self.get_logger().info('Was docking before obstacle. Spinning to re-acquire marker...')
+                    self.state = 'SEARCHING'
+                    # Reset search tracking
+                    self.search_yaw_accumulated = 0.0
+                    try:
+                        _, _, cur_yaw = self.get_orientation()
+                        self.search_last_yaw = cur_yaw
+                    except: pass
+                else:
+                    self.get_logger().info('Resuming standard navigation.')
+                    self.state = 'PLANNING'
+                
+                self.pre_recovery_state = None # Clear memory
+
+        elif self.state == 'SEARCHING':
+            self.search_marker_logic()
+
+        elif self.state == 'DOCKING_APPROACH':
+            self.docking_approach_logic()
+            
+        elif self.state == 'DOCKING_FINAL_ALIGN':
+            self.docking_final_align_logic()
+            
+        elif self.state == 'STATION':
+            self.stopbot()
+            if not self.commandSent:
+                self.get_logger().info(f"Signaling payload for Station {self.current_docking_id} via GPIO...")
+                self.gpio_pub.publish(String(data='LAUNCH'))
+                self.commandSent = True
+                self.state = 'WAITING_FOR_PI'
+        
+        elif self.state == 'WAITING_FOR_PI':
+            self.stopbot()
+            if self.responseHeard:
+                if self.current_docking_id in self.valid_station_ids:
+                    self.valid_station_ids.remove(self.current_docking_id)
+                
+                self.current_docking_id = None
+                self.commandSent = False
+                self.responseHeard = False
+
+                # Tell the robot to resume its mission
+                self.get_logger().info('Station complete! Resuming exploration...')
+                self.undock_start_time = self.get_clock().now()
+                self.state = 'UNDOCKING'
+        
+        elif self.state == 'UNDOCKING':
+            now = self.get_clock().now()
+            elapsed_time = (now - self.undock_start_time).nanoseconds / 1e9
+            
+            # ── Rear Collision Avoidance ──
+            # Safely check the minimum distance behind the robot
+            back_dist = np.nanmin(self.back) if len(self.back) > 0 and not np.isnan(self.back).all() else float('inf')
+            
+            # If an obstacle is closer than 0.25m to the rear, abort the reverse!
+            if back_dist <= 0.25:
+                self.get_logger().warn(f'Obstacle detected {back_dist:.2f}m behind! Aborting reverse.')
+                self.stopbot()
+                self.undock_start_time = None
+                self.state = 'PLANNING' # Let the path planner figure out how to drive forward safely
+                return
+
+            # ── Normal Reversing ──
+            if elapsed_time < self.undock_duration:
+                # Path is clear, continue driving backward
+                twist = Twist()
+                twist.linear.x = float(self.undock_speed)
+                twist.angular.z = 0.0
+                self.publisher_.publish(twist)
+            else:
+                # Timer finished safely
+                self.stopbot()
+                self.get_logger().info('Undocking complete. Resuming frontier exploration...')
+                self.undock_start_time = None
                 self.state = 'PLANNING'
+
+        elif self.state == 'MISSION_COMPLETE':
+            self.stopbot()
     
 def main(args=None):
     rclpy.init(args=args)
