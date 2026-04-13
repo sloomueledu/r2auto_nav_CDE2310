@@ -14,4 +14,10 @@ REFINEMENTS: Parameter Updates to r2livecode for better navigation reliablitity
 ## *v1.3.0*  
 **Date:** 11 April 2026  
 **Description:**  
-FEATURE UPDATE: merged r2dockingtest functionality into r2livecode to enable nav & dock sequnce [NEED TO REFINE]
+FEATURE UPDATE: merged r2dockingtest functionality into r2livecode to enable nav & dock sequnce [NEED TO REFINE]  
+
+## *v1.4.0*  
+**Date:** 13 April 2026  
+**Description:**  
+FEATURE UPDATE: Added r2livetest2.py for refined docking algorithm and updated docking and navogation parameters;  
+Changed ArUco Marker Station Detectiong Logic - Assigned ID Numbers (0: A;1: B)

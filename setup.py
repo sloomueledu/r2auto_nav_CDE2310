@@ -30,7 +30,8 @@ setup(
             'r2autopilot = auto_nav.r2autopilot:main',
             'r2livecode = auto_nav.r2livecode:main',
             'r2dockingtest = auto_nav.r2dockingtest:main',
-            'r2fulltest = auto_nav.r2fulltest:main'
+            'r2fulltest = auto_nav.r2fulltest:main',
+            'r2livetest2 = auto_nav.r2livetest2:main'
         ],
     },
 )

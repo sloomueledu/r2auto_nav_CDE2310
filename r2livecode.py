@@ -49,12 +49,12 @@ def euler_from_quaternion(x, y, z, w):
 class RegulatedPurePursuit():
     def __init__(self):
         #these are to be fine tuned once testing begins
-        self.lookaheaddist = 0.1
+        self.lookaheaddist = 0.3
         self.max_speed = 0.22
         self.min_speed = 0.05
         self.max_angular_v = 0.2
         self.safety_factor = 3.0
-        self.rotate_threshold = 0.5 #anything >28 degrees
+        self.rotate_threshold = 0.70
     
     def findpoint(self, cur_x, cur_y, path):
         for node in path:
@@ -174,7 +174,7 @@ class AutoPilot(Node):
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer,self)
 
         self.publisher_ = self.create_publisher(Twist,'cmd_vel',10)
-        self.gpio_pub = self.create_publisher(String, '/gpio_command', 10)  # For signaling docking status
+        self.gpio_pub = self.create_publisher(String, '/gpio_commands', 10)  # For signaling docking status
         
         # This is to help us see our goal point on RVis
         self.marker_publisher = self.create_publisher(Marker,'goal_marker',10)
@@ -193,8 +193,8 @@ class AutoPilot(Node):
         self.rotation_start_time = None
         self.escape_direction_locked = None
         self.escape_start_time = None
-        self.escape_duration = 2.0  # Seconds to drive blindly away from a trap
-        self.escape_speed = 0.15     # Linear speed during escape (m/s)
+        self.escape_duration = 1.5  # Seconds to drive blindly away from a trap
+        self.escape_speed = 0.1     # Linear speed during escape (m/s)
         self.turning_timeout = 20.0 # seconds, this is to prevent the robot from getting stuck in a turning state for too long
         self.recovery_angle = None
         self.turn_angle_by = (math.pi / 9) # threshold to turn the robot by, this is to help the robot to get unstuck when it is trapped in a corner or narrow path
@@ -226,7 +226,7 @@ class AutoPilot(Node):
         self.docking_max_v = 0.12
         self.docking_max_w = 0.50
         
-        self.fov_loss_timeout = 1.5
+        self.fov_loss_timeout = 0.5
         self.last_known_alpha = None
         self.last_known_rho = None
         self.recovery_w = 0.25
@@ -329,7 +329,7 @@ class AutoPilot(Node):
 
         # 2. Define your desired FOVs in degrees
         # Example setup: 120° Front, 80° Left, 80° Right, 80° Back
-        front_fov = 80
+        front_fov = 100
         
         # 3. Calculate index boundaries based on angles
         # Front is split across the 0-degree mark (beginning and end of array)
@@ -386,6 +386,10 @@ class AutoPilot(Node):
         target_pose = msg.poses[closest_idx]
         self.marker_x = target_pose.position.x
         self.marker_z = target_pose.position.z
+        alpha_check = math.atan2(self.marker_x, self.marker_z)
+        if abs(alpha_check) >= math.pi / 9: # if the angle to the marker is greater than 20 degrees, we consider it not visible for docking purposes
+            self.marker_visible = False
+            return
         self.last_seen = self.get_clock().now()
         self.marker_visible = True
         self.current_docking_id = chosen_id
@@ -420,330 +424,6 @@ class AutoPilot(Node):
         twist.angular.z = 0.0
         # time.sleep(1)
         self.publisher_.publish(twist)
-    
-    #the fun begins
-    def planroute(self, goal=None):
-        occ_grid = self.occdata
-        #check if it is empty
-        if occ_grid.shape[0] == 0:
-            return []
-        found_path = False
-
-        # We are going to downscale the map by 3 here to save on computational cost
-        # Step 1: Pad the map
-        pad_y = (3 - occ_grid.shape[0] % 3) % 3
-        pad_x = (3 - occ_grid.shape[1] % 3) % 3
-        occ_grid = np.pad(occ_grid, ((0, pad_y), (0, pad_x)), mode='constant', constant_values=-1)
-
-        # Step 2: Reshape the map
-        height, width = occ_grid.shape
-        occ_pooled_grid = occ_grid.reshape(height // 3, 3, width // 3, 3).max(axis=(1,3)) # // is used here since it returns an integer (by flooring the result)
-        # at this point in the code, every 3x3 block in the original map has been downscaled into a single grid   
-
-        # get an array of wall coordinates and their respective distances
-        wall_distance = np.zeros_like(occ_pooled_grid, dtype=float)
-        WALL_THRESHOLD = 50 # any cells that has a value of >=75 in the pooled map is considered a wall
-        wall_cells = np.where(occ_pooled_grid >= WALL_THRESHOLD)
-        
-        # calculate the distance betweeen each cell to the nearest wall
-        for y in range(occ_pooled_grid.shape[0]):
-            for x in range(occ_pooled_grid.shape[1]):
-                if occ_pooled_grid[y,x] >= WALL_THRESHOLD:
-                    wall_distance[y,x] = 0 # This is a wall
-                else:
-                    min_dist = float('inf')
-                    # we want to find the closest wall to the cell
-                    for wy, wx in zip(wall_cells[0], wall_cells[1]):
-                        dist = math.sqrt((y-wy)**2 + (x - wx)**2)
-                        min_dist = min(min_dist, dist)
-                    wall_distance[y,x] = min_dist
-
-        # we need to locate where the robot is in the pooled map
-        # note that becausew of the downscalling, the pooled coords might cause the software
-        # to percive the bot as being inside a wall when it isn't. As such, we need to account for that and adjust accordingly
-        
-        # these are placeholders for the pooled bot location
-        pbotloc_x = -1
-        pbotloc_y = -1
-
-        try:        
-            # these are placeholders for the pooled goal coords
-            pgoal_x = -1
-            pgoal_y = -1
-
-            # get the actual bot location in the original map
-            if self.tf_buffer.can_transform('map', 'base_link', rclpy.time.Time()):
-                cur_x, cur_y, _ = self.get_orientation()
-                obotloc_x = (cur_x - self.origin.x)/self.res
-                obotloc_y = (cur_y - self.origin.y)/self.res
-                
-                pbotloc_x = max(0, min(int(obotloc_x) // 3, occ_pooled_grid.shape[1] - 1))
-                pbotloc_y = max(0, min(int(obotloc_y) // 3, occ_pooled_grid.shape[0] - 1))
-                potential_cells = [(pbotloc_y,pbotloc_x)]
-                
-                # we shall check if the pooled coords shows that the bot is in a wall here
-                if occ_pooled_grid[pbotloc_y, pbotloc_x] >= WALL_THRESHOLD:
-                    potential_cells = []
-                    for i in range(-1,2):
-                        for j in range(-1,2):
-                            ny, nx = pbotloc_y + i, pbotloc_x + j
-                            if 0 <= ny < occ_pooled_grid.shape[0] and 0 <= nx < occ_pooled_grid.shape[1]:
-                                if occ_pooled_grid[ny, nx] < WALL_THRESHOLD:
-                                    potential_cells.append((ny,nx))
-                    
-                    # we will take the closest pooled coord to be where the bot lies on the pooled map
-                    min_dist = float('inf')
-                    for cell in potential_cells:
-                        dist = math.sqrt((cell[0] - pbotloc_y)**2 + (cell[1] - pbotloc_x)**2)
-                        if dist < min_dist:
-                            min_dist = dist
-                            pbotloc_y, pbotloc_x = cell
-                state = 'PLANNING' # go back to planning state to find the next station
-                # at this point, we would have identified here the bot is in the pooled map
-                self.get_logger().info(f'Robot Location on Pooled Map: x={pbotloc_x}, y={pbotloc_y}')
-                self.get_logger().info(f'Robot Location on Actual Map: x={obotloc_x}, y={obotloc_y}')
-
-                # get the actual goal coords in the original map
-                if goal is not None:
-                    ogoal_x, ogoal_y = goal.x, goal.y
-                    pgoal_x = min(int((ogoal_x - self.origin.x) / self.res) // 3, occ_pooled_grid.shape[1] - 1)
-                    pgoal_y = min(int((ogoal_y - self.origin.y) / self.res) // 3, occ_pooled_grid.shape[0] - 1)
-                self.get_logger().info(f'Goal Coordinates on Pooled Map: x={pgoal_x}, y={pgoal_y}')
-            else:
-                self.get_logger().warn('Transform from "map" and "base_link" is not available. Retrying...')
-        except (LookupException, ConnectivityException, ExtrapolationException) as e:
-            self.get_logger().error(f'Transform Lookup Failed: {e}')
-        
-        if pbotloc_x == -1 or pbotloc_y == -1:
-            return [] # tells us that there is an error with finding the bot location
-        
-        """
-        Recap of what we have done so far in the code:
-        1. Downscaled the map by transforming every 3x3 grid in the original map into a single grid
-           and assigned it the maximum value out of the 3x3 grid
-        2. Found Where our Robot lies in the pooled map, adjusting if the original positions made it seem if the robot lies inside a wall
-        3. Found where our goal lies in the pooled map
-        4. Created a 'cost-map' of sorts that tells us where the walls are and the distance of cells from their respective nearest wall
-        """
-        # at this point, we are now ready to commence the BFS to
-        # 1. Find the nearest frontier to go to (if no goal point)
-        # 2. Get the path to the goal point
-
-        # Setting up BFS
-        self.get_logger().info(f'Starting BFS from x={pbotloc_x}, y={pbotloc_y}')
-        start = MapNode(pbotloc_x, pbotloc_y)
-        frontier = [start]
-        visited = set() # this keeps track of points that has been checked before
-        visited.add(start)
-
-        if len(frontier) == 0:
-            return []
-        
-        # main BFS Logic here
-        check_node = None
-
-        # Debug the starting cell
-        start_val = occ_pooled_grid[int(start.y), int(start.x)]
-        self.get_logger().info(f'Start cell (x={int(start.x)}, y={int(start.y)}) value: {start_val}')
-
-        if start_val >= WALL_THRESHOLD:
-            self.get_logger().warn('BFS failed: Robot is starting inside a wall on the pooled map!')
-        
-        while len(frontier) > 0:
-            """
-            HOW THIS IS GOING TO WORK:
-            STEP 1: GET THE NODE THAT WE WANT TO EXPLORE
-            STEP 2: THERE ARE 3 CASES:
-                CASE 1: NODE IS A AN UNEXPLORED AREA (VALUE == -1)
-                        A. CHECK IF THERE IS AN EXISTING GOAL
-                        B. IF NO GOAL HAS BEEN SET PREVIOUSLY, SET THIS NEW POINT FOUND AS THE GOAL POINT
-                        C. EXIT THE LOOP AS A PATH HAS BEEN FOUND
-                IF A GOAL POINT HAS BEEN PRE-DEFINED:
-                CASE 2: NODE IS THE GOAL POINT
-                        A. BREAK OUT OF THE LOOP AS A PATH HAS BEEN FOUND
-                CASE 3: NODE IS A WALL
-                        A. SKIP THIS POINT AND STEP 3 AS WE CANNOT FIND A PATH OUT OF IT
-            STEP 3: GENERATE A LIST OF NEIGHBOURS AROUND THE EXPLORED CELL
-            """
-            # Step 1:
-            check_node = frontier.pop(0)
-            visited.add(check_node)
-
-            # Step 2:
-            # case 1
-            if goal is None:
-                # 1. Is the current node unexplored?
-                if occ_pooled_grid[int(check_node.y), int(check_node.x)] == -1:
-                    # 2. Is the parent (the previous step) confirmed free space?
-                    # We check if the parent value is between 0 and your WALL_THRESHOLD
-                    if check_node.parent:
-                        parent_val = occ_pooled_grid[int(check_node.parent.y), int(check_node.parent.x)]
-                        if 0 <= parent_val < WALL_THRESHOLD: 
-                            self.get_logger().info(f'Valid internal frontier found at {int(check_node.x)}, {int(check_node.y)}')
-                            found_path = True
-                            break
-            else:
-                # case 2:
-                if check_node.y == pgoal_y and check_node.x == pgoal_x:
-                    self.get_logger().info(f'Goal Point Found')
-                    found_path = True
-                    break
-            
-            # case 3
-            cell_val = occ_pooled_grid[int(check_node.y), int(check_node.x)]
-            if cell_val >= WALL_THRESHOLD:
-                    continue
-            
-            # Prevent walking through the void when routing to a known goal
-            if goal is not None and cell_val == -1:
-                # Allow it ONLY if it is the exact goal node we are trying to reach
-                if not (check_node.y == pgoal_y and check_node.x == pgoal_x):
-                    continue
-
-            # Step 3:
-            neighbours = check_node.generate_neighbours(occ_pooled_grid.shape[1], occ_pooled_grid.shape[0])
-            neighbours.sort(key=lambda n: -wall_distance[int(n.y), int(n.x)]) 
-            # this sorts the neighbour list according to their distanced from the closest wall
-            # we want to prioritise points that are further way from potential walls
-
-            for neighbour in neighbours:
-                if neighbour in visited:
-                    continue # skip nodes that have been checked previously
-                frontier.append(neighbour)
-                visited.add(neighbour)
-                neighbour.parent = check_node
-        
-        # ... (End of the while len(frontier) > 0: loop) ...
-        
-        # --- NEW FALLBACK: RANDOM FREE SPOT ---
-        # If we were exploring (goal is None) and failed to find a frontier
-        if not found_path and goal is None:
-            self.get_logger().warn('No frontier found! Wandering to a random known spot...')
-            
-            valid_random_spots = []
-            for node in visited:
-                val = occ_pooled_grid[int(node.y), int(node.x)]
-                
-                # Check if the node is confirmed free space
-                if 0 <= val < WALL_THRESHOLD:
-                    # Calculate distance from the robot (in pooled grid units)
-                    dist = math.sqrt((node.x - pbotloc_x)**2 + (node.y - pbotloc_y)**2)
-                    
-                    # Ensure the spot is at least ~5 pooled cells away so it actually drives somewhere
-                    if dist > 5.0:
-                        valid_random_spots.append(node)
-            
-            # If we found safe spots, pick one at random
-            if len(valid_random_spots) > 0:
-                check_node = random.choice(valid_random_spots)
-                found_path = True
-                self.get_logger().info(f'Fallback successful: Heading to x={int(check_node.x)}, y={int(check_node.y)}')
-            else:
-                self.get_logger().error('Fallback failed: No safe open space found to wander to.')
-        # --------------------------------------
-
-        path = []
-        if not found_path or check_node is None:
-            self.get_logger().info('No Path Found')
-            return []
-
-        """
-        RECAP:
-        AT THIS STAGE, WE WOULD HAVE:
-        1. FOUND A NEW GOAL POINT IF NO GOAL HAS BEEN FOUND PREVIOUSLY
-        2. FOUND A PATH TO THE GOAL POINT BY BFS
-
-        WHAT WE NEED TO DO NOW
-        1. REFINE THE PATH TO ENSURE THE SAFETY OF THE ROBOT
-        """
-        path = []
-        if not found_path or check_node is None:
-            self.get_logger().info('No Path Found')
-            return []
-        
-        # we will now adjust the path to make sure that the robot stays safe and away from walls
-        while check_node is not None:
-            y, x = int(check_node.y), int(check_node.x)
-            shifty = 0
-            shiftx = 0
-
-            # we will now determine how much we need to shift each point in the path by and the shift direction
-            for dy in range(-self.wallinfdist, self.wallinfdist + 1):
-                for dx in range(-self.wallinfdist, self.wallinfdist + 1):
-                    ny, nx = y + dy, x + dx
-
-                    # check if we have gone out of bounds
-                    if 0 <= ny < occ_pooled_grid.shape[0] and 0 <= nx < occ_pooled_grid.shape[1]:
-                        # check if this new point is in a wall
-                        if occ_pooled_grid[ny, nx] >= WALL_THRESHOLD:
-                            # compute how much to shift by
-                            shiftdist = max(0.1, math.sqrt(dy**2 + dx**2))
-                            # the negative here means shift away
-                            dirx = -dx / shiftdist
-                            diry = -dy / shiftdist
-
-                            # scale the shift pi_response'
-                            # inverse relationship: closer you are to the wall, more you get pusahed away
-                            magnitude = self.maxshift * (1.0 / shiftdist)
-
-                            shiftx += dirx * magnitude
-                            shifty += diry * magnitude
-            # apply the shift
-            shiftedx = x + shiftx
-            shiftedy = y + shifty
-
-            # double check to make sure we didnt shift into a new wall or go out of bounds
-            if 0 <= shiftedy < occ_pooled_grid.shape[0] and 0 <= shiftedx < occ_pooled_grid.shape[1]:
-                if 0 <= occ_pooled_grid[int(shiftedy), int(shiftedx)] < WALL_THRESHOLD:
-                    check_node.x = shiftedx
-                    check_node.y = shiftedy
-                else:
-                    # apply a smaller shift
-                    check_node.x = x + 0.25 * shiftx # might need to fine tune the 0.25 here
-                    check_node.y = y + 0.25 * shifty
-            
-            # we will need to convert back the pooled coords to the original map coords
-            orimap_x = (check_node.x * 3 + 1.5) * self.res + self.origin.x
-            orimap_y = (check_node.y * 3 + 1.5) * self.res + self.origin.y
-
-            toAppend = MapNode(orimap_x, orimap_y)
-            self.get_logger().info(f'Path waypoint: x={toAppend.x}, y={toAppend.y}')
-            path.append(toAppend)
-            check_node = check_node.parent
-        
-        if len(path) > 0:
-            self.goalpoint = path[0]
-            self.get_logger().info(f'Goal Point: x={self.goalpoint.x}, y={self.goalpoint.y}')
-            self.publish_goal_marker(self.goalpoint.x, self.goalpoint.y)
-        
-        path.reverse() # we planned the path from the goal to the bot. what we want is opposite
-        """
-        Recap of what we have done so far:
-        1. We have adjusted the path waypoints to ensure that the robot stays far away from walls
-
-        What we need to do now:
-        1. Smooth Out the path
-        """
-        if len(path) > 2: # only smooth paths if there are more than 2 waypoints inside
-            smoothpath = [path[0]] # keep the first point
-            smoothingwindow = 7 # this may need to be fine tuned
-            for i in range(1, len(path) -1):
-                window_start = max(0, i - smoothingwindow // 2)
-                window_end = min(len(path), i + smoothingwindow // 2 + 1)
-                window = path[window_start:window_end]
-
-                avgx = sum(node.x for node in window) / len(window)
-                avgy = sum(node.y for node in window) / len(window)
-                smoothpath.append(MapNode(avgx,avgy))
-            smoothpath.append(path[-1]) # keep the last goal point
-            path = smoothpath
-        
-        # This function call helps to visualise the planned path in RVis
-        self.publish_planned_path(path)# ── Undocking Variables ──
-        self.undock_start_time = None
-        self.undock_duration = 2.0  # Seconds to reverse
-        self.undock_speed = -0.08   # Safe, slow reverse speed (m/s)
-        return path
     
     # This function is to publish our found goal point which is to be marked out on RVis
     def publish_goal_marker(self, x, y):
@@ -1077,7 +757,7 @@ class AutoPilot(Node):
             current_dist_to_dock = self.marker_z
 
         # Collision avoidance integration
-        ignore_obstacles_dist = 0.50 
+        ignore_obstacles_dist = 0.55
         if current_dist_to_dock > ignore_obstacles_dist:
             if self.checkObstacles():
                 self.get_logger().warn('Obstacle blocking dock! Aborting approach -> RECOVERY.')
@@ -1202,14 +882,15 @@ class AutoPilot(Node):
             elapsed_time = (now - self.escape_start_time).nanoseconds / 1e9
             
             if elapsed_time < self.escape_duration:
-                twist = Twist()
-                twist.linear.x = float(self.escape_speed)
-                twist.angular.z = 0.0
-                self.publisher_.publish(twist)
-                
-                if len(self.front) > 0 and np.nanmin(self.front) <= SIDE_THRESHOLD:
-                    self.stopbot()
-                    self.state = 'RECOVERY'
+                if not self.checkObstacles():
+                    twist = Twist()
+                    twist.linear.x = float(self.escape_speed)
+                    twist.angular.z = 0.0
+                    self.publisher_.publish(twist)
+                    
+                    if len(self.front) > 0 and np.nanmin(self.front) <= SIDE_THRESHOLD:
+                        self.stopbot()
+                        self.state = 'RECOVERY'
             else:
                 self.stopbot()
                 
