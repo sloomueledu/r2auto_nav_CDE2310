@@ -39,7 +39,7 @@ def euler_from_quaternion(x, y, z, w):
 class RegulatedPurePursuit():
     def __init__(self):
         # CHANGE: slightly faster and bolder
-        self.lookaheaddist = 0.20    # was 0.1 — 10cm was way too twitchy
+        self.lookaheaddist = 0.30    # was 0.1 — 10cm was way too twitchy
         self.max_speed = 0.22
         self.min_speed = 0.05
         self.max_angular_v = 0.35    # was 0.2 — too slow to turn in maze
@@ -122,6 +122,7 @@ class AutoPilot(Node):
         self.escape_start_time = None
         self.escape_duration = 1.5
         self.escape_speed = 0.15
+        self.front_fov = 90
         self.turning_timeout = 20.0
         self.recovery_angle = None
         self.turn_angle_by = (math.pi / 6)
@@ -144,18 +145,18 @@ class AutoPilot(Node):
         self.marker_sub
 
         # Docking Variables
-        self.k_rho = 0.3
-        self.k_alpha = 0.8
-        self.k_beta = -0.15
+        self.k_rho = 0.2
+        self.k_alpha = 1.6
+        self.k_beta = -0.40
         self.target_dist = 0.25
         self.desired_final_heading = 0.0
         self.docking_max_v = 0.12
         self.docking_max_w = 0.50
-        self.fov_loss_timeout = 1.5
+        self.fov_loss_timeout = 0.75
         self.last_known_alpha = None
         self.last_known_rho = None
         self.recovery_w = 0.25
-        self.rho_switch_threshold = 0.04
+        self.rho_switch_threshold = 0.1
         self.alpha_tolerance = 0.05
         self.commandSent = False
         self.marker_x = None
@@ -220,8 +221,7 @@ class AutoPilot(Node):
         np.savetxt(SCANFILE, self.laser_range)
 
         ppd = total_points / 360.0
-        front_fov = 90
-        half_front = int((front_fov / 2) * ppd)
+        half_front = int((self.front_fov / 2) * ppd)
         front_right_scan = self.laser_range[-half_front:]
         front_left_scan = self.laser_range[0:half_front]
         self.front = np.concatenate((front_right_scan, front_left_scan))
@@ -317,7 +317,7 @@ class AutoPilot(Node):
 
         # get an array of wall coordinates and their respective distances
         wall_distance = np.zeros_like(occ_pooled_grid, dtype=float)
-        WALL_THRESHOLD = 50 # any cells that has a value of >=75 in the pooled map is considered a wall
+        WALL_THRESHOLD = 50 # any cells that has a value of >=50 in the pooled map is considered a wall
         wall_cells = np.where(occ_pooled_grid >= WALL_THRESHOLD)
         
         # calculate the distance betweeen each cell to the nearest wall
@@ -487,8 +487,6 @@ class AutoPilot(Node):
                 frontier.append(neighbour)
                 visited.add(neighbour)
                 neighbour.parent = check_node
-        
-        # ... (End of the while len(frontier) > 0: loop) ...
         
         # --- NEW FALLBACK: RANDOM FREE SPOT ---
         # If we were exploring (goal is None) and failed to find a frontier
@@ -857,7 +855,7 @@ class AutoPilot(Node):
                           else float('inf'))
             if front_dist <= STOP_DISTANCE:
                 self.get_logger().warn(f'Obstacle at {front_dist:.2f}m blocking dock path! → RECOVERY')
-                self.pre_recovery_state = self.state
+                
                 self.stopbot()
                 self.state = 'RECOVERY'
                 return
@@ -883,6 +881,8 @@ class AutoPilot(Node):
 
             v = self.k_rho * rho
             w = -(self.k_alpha * alpha + self.k_beta * beta)
+            heading_factor = math.cos(alpha)**2 # Slow down as we approach head-on to prevent overshooting
+            v *= max(0.3,heading_factor) # Don't slow down too much to avoid getting stuck when very close
             v = max(min(v, self.docking_max_v), -self.docking_max_v)
             w = max(min(w, self.docking_max_w), -self.docking_max_w)
 
@@ -928,6 +928,12 @@ class AutoPilot(Node):
             w = -(0.8 * alpha)
             cmd.angular.z = max(min(w, self.docking_max_w), -self.docking_max_w)
             self.publisher_.publish(cmd)
+            front_dist = (np.nanmin(self.front)
+                          if len(self.front) > 0 and not np.isnan(self.front).all()
+                          else float('inf'))
+            if front_dist <= STOP_DISTANCE:
+                self.get_logger().warn(f'Obstacle at {front_dist:.2f}m blocking dock path! → RECOVERY')
+               
         else:
             self.stopbot()
             self.state = 'STATION'
@@ -977,6 +983,7 @@ class AutoPilot(Node):
                 self.turn_in_place(target_angle, cur_yaw)
 
         elif self.state == 'RECOVERY':
+            self.front_fov = 120 #temporarily widen front fov to be more cautious during recovery
             self.recoverySequence()
 
         elif self.state == 'ESCAPING':
@@ -1005,6 +1012,7 @@ class AutoPilot(Node):
                     else:
                         self.get_logger().info('Resuming standard navigation.')
                         self.state = 'PLANNING'
+                    self.front_fov = 90
                     self.pre_recovery_state = None
             else: 
                 self.stopbot()
