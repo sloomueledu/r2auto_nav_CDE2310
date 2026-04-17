@@ -25,7 +25,7 @@ GOAL_THRESHOLD = 0.20
 SCANFILE = 'lidar.txt'
 MAPFILE = 'map.txt'
 WALL_THRESHOLD = 50
-INFLATE_RADIUS = 2          # pooled cells (~0.30m clearance at 0.05 res)
+INFLATE_RADIUS = 0          # pooled cells (~0.30m clearance at 0.05 res)
 DIRECTIONS_8 = [(-1, 0), (1, 0), (0, -1), (0, 1),
                 (-1, -1), (-1, 1), (1, -1), (1, 1)]
 
@@ -151,10 +151,10 @@ class AutoPilot(Node):
         self.escape_start_time = None
         self.escape_duration = 1.0          # was 1.5 — quicker escapes
         self.escape_speed = 0.15
-        self.front_fov = 90
+        self.front_fov = 80
         self.turning_timeout = 8.0          # was 20 — don't spin for ages
         self.recovery_angle = None
-        self.turn_angle_by = (math.pi / 9)
+        self.turn_angle_by = (math.pi / 18)
         self.wallinfdist = 3
         self.maxshift = 1.5
         self.pre_recovery_state = None
@@ -1234,11 +1234,17 @@ class AutoPilot(Node):
             if self.responseHeard:
                 if self.current_docking_id in self.valid_station_ids:
                     self.valid_station_ids.remove(self.current_docking_id)
+                
                 self.current_docking_id = None
                 self.commandSent = False
                 self.responseHeard = False
                 # Clear docking state
                 self.dock_last_alpha = None
+                self.get_logger().info('Station complete!  Undocking…')
+                self.undock_start_time = self.get_clock().now()
+                self.state = 'UNDOCKING'
+
+                """
                 if self.STATION_A_COMPLETED and self.STATION_B_COMPLETED:
                     self.get_logger().info('MISSION COMPLETE!')
                     self.state = 'MISSION_COMPLETE'
@@ -1247,6 +1253,7 @@ class AutoPilot(Node):
                         'Station complete!  Undocking…')
                     self.undock_start_time = self.get_clock().now()
                     self.state = 'UNDOCKING'
+                """
 
         elif self.state == 'UNDOCKING':
             now = self.get_clock().now()
@@ -1273,9 +1280,10 @@ class AutoPilot(Node):
                     'Undocking complete.  Resuming exploration…')
                 self.undock_start_time = None
                 self.state = 'PLANNING'
-
+        """
         elif self.state == 'MISSION_COMPLETE':
             self.stopbot()
+        """
 
 
 # ─── MAIN ────────────────────────────────────────────────────────────────────
