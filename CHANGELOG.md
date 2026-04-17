@@ -32,4 +32,14 @@ REFINEMENTS: Fixed a typo in CHANGELOG.md; Fine-tuned parameters for docking and
 **Date:** 14 April 2026  
 **Description:**  
 REFINEMENTS: Updated Navigation Algorithm & Parameters to be more robust. Simplified Docking Logic. Renamed newtest.py to r2CDE2310_FINAL.py.  
-**NOTE! THIS IS THE CODE USED IN EVALUATION**
+
+## *v1.5.2*  
+**Date:** 14 April 2026  
+**Description:**  
+REFINEMENTS: Removed Checks to see if both stations are completed to allow the bot to continue to navigate in the event of not full map completion. Removed 'MISSION_COMPLETE' state.  
+**NOTE! THIS IS THE CODE USED IN EVALUATION**  
+
+## *v1.5.3*  
+**Date:** 14 April 2026  
+**DEscription:**  
+REFINEMENTS: On the fly parameter change during final run for r2CDE2310_FINAL.py Navigation
