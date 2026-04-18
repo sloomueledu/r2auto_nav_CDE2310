@@ -12,6 +12,7 @@ Our mission objectives can be broken down into two stages:
 + Align and dock within allowable docking distance
 + Track the motion profile of the target, if required
 + Unload a payload batch (3 Ping Pong Balls) into the target receptacle, in fixed timing sequence if required    
+
 **Stage 2:** Bonus Objectives
 + Identify the Lift Lobby & Final station through Visual Markers
 + Initiate and Use API Calls to control a lift
