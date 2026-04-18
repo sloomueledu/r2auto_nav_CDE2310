@@ -32,6 +32,7 @@ The mission has the following constraints:
 3. The gaps between maze wall panels may cause issues the LiDAR reading
 
 ### REQUIREMENTS  
+We have defined our requirements as such:  
 
 ### CON-OPS  
 
