@@ -57,7 +57,7 @@ ros2 run ros2_aruco usbcam1
 ## Expected Outcome  
 
 If the code has been executed correctly, you should see this on your screen:  
-! [Sample Video Feed Window](./images/sample_window.png)  
+![Sample Video Feed Window](./images/sample_window.png)  
 
 To see the the ID Number(s), Orientation and Positional Data of ArUco Marker(s) being detected relative to the camera's frame, you may do so with the following command:  
 ```   
@@ -65,4 +65,4 @@ ros2 topic echo /usbcam1_markers
 ```  
 
 If the code has been executed correctly and there are ArUco Marker(s) Present in the camera's field of view, you should see this on your screen:  
-! [Sample Marker Data](./images/usbcam1_markers.png)
+![Sample Marker Data](./images/usbcam1_markers.png)
