@@ -8,15 +8,15 @@ For this project, we are tasked to design and build an Autonomous Mobile Robot t
 ### Mission Objectives
 Our mission objectives can be broken down into two stages:   
 **Stage 1:** Primary Objectives
-* Identify the Station through Visual Markers
-* Align and dock within allowable docking distance
-* Track the motion profile of the target, if required
-* Unload a payload batch (3 Ping Pong Balls) into the target receptacle, in fixed timing sequence if required    
++ Identify the Station through Visual Markers
++ Align and dock within allowable docking distance
++ Track the motion profile of the target, if required
++ Unload a payload batch (3 Ping Pong Balls) into the target receptacle, in fixed timing sequence if required    
 **Stage 2:** Bonus Objectives
-* Identify the Lift Lobby & Final station through Visual Markers
-* Initiate and Use API Calls to control a lift
-* Safely travel to the second level
-* Unload the final payload batch (3 Ping Pong Balls) at the final station
++ Identify the Lift Lobby & Final station through Visual Markers
++ Initiate and Use API Calls to control a lift
++ Safely travel to the second level
++ Unload the final payload batch (3 Ping Pong Balls) at the final station
 
 > **NOTE:** The codebase deployed during the final Mission does not include capabilities to execute the bonus mission. 
 
