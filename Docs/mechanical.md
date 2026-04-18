@@ -1,7 +1,8 @@
 # Mechanical Subsystem
 
 ## Problem Description & Design Considerations
-Storage
+
+### Storage
 
 The robot must:
 
@@ -11,7 +12,7 @@ Ensure the LiDAR sensor remains unobstructed
 
 To address this, balls are stored in an inclined housing arranged around the TurtleBot. This allows gravity to guide balls toward the feeding mechanism while avoiding vertical stacking that would block the LiDAR.
 
-Launcher
+### Launcher
 
 The system must:
 
