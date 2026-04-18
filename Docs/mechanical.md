@@ -1,6 +1,6 @@
 # Mechanical Subsystem
 
-Problem Description & Design Considerations
+## Problem Description & Design Considerations
 Storage
 
 The robot must:
