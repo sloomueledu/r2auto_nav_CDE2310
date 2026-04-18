@@ -29,8 +29,8 @@ The mission has the following constraints:
 2. Navigation
 * The Robot must rely on its sensors’ data to map out its surroundings and for navigation.
 * Navigation methods which uses line-following is not allowed
-* Environment
-3. The gaps between maze wall panels may cause issues the LiDAR reading
+3. Environment
+* The gaps between maze wall panels may cause issues the LiDAR reading
 
 ### REQUIREMENTS  
 We have defined our requirements as such:  
