@@ -14,7 +14,8 @@ The algorithm for ArUco Marker Detection & Tracking uses a modified version of `
 
 ## Prerequisites  
 
-Please ensure that you have calibrated 
+Please ensure that you have calibrated your USB Camera properly. To do so, refer to the following link:  
+[Camera Calibration](https://emanual.robotis.com/docs/en/platform/turtlebot3/appendix_raspi_cam/#trouble-shooting)
 
 ## Set-Up  
 
