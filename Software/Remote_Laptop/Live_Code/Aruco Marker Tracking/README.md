@@ -26,10 +26,14 @@ cd ~/colcon_ws/src
 git clone <insert_ssh_link>  
 ```  
 1. Navigate to the following folder:  
-`cd ~/colcon_ws/src/ros2_aruco/ros2_aruco`  
+```  
+cd ~/colcon_ws/src/ros2_aruco/ros2_aruco  
+```  
 1. Replace the `package.xml` and `setup.py` files with the provided corresponding files  
 1. Navigate to the following folder:  
-`cd ros2_aruco`  
+```  
+cd ros2_aruco  
+```  
 1. Copy the provided `usbcam1.py` file into the folder  
 1. Rebuild the package:  
 ```  
@@ -40,19 +44,25 @@ source install/setup.bash
 ## Running the Code  
 
 To run the code, first ensure that the camera video feed publisher is active. You can verify this by running the following command:  
-`ros2 topic list`  
+```
+ros2 topic list  
+```  
 and verify that both `/hdcam0/image_raw/compressed` and `/hdcam0/camera_info` are present.  
 
 Thereafter, launch the node by running the following command:  
-`ros2 run ros2_aruco usbcam1`  
+```
+ros2 run ros2_aruco usbcam1   
+```  
 
 ## Expected Outcome  
 
 If the code has been executed correctly, you should see this on your screen:  
-[Sample Video Feed Window](./images/sample_window.png)  
+! [Sample Video Feed Window](./images/sample_window.png)  
 
 To see the the ID Number(s), Orientation and Positional Data of ArUco Marker(s) being detected relative to the camera's frame, you may do so with the following command:  
-`ros2 topic echo /usbcam1_markers`  
+```   
+ros2 topic echo /usbcam1_markers   
+```  
 
 If the code has been executed correctly and there are ArUco Marker(s) Present in the camera's field of view, you should see this on your screen:  
-[Sample Marker Data](./images/usbcam1_markers.png)
+! [Sample Marker Data](./images/usbcam1_markers.png)
