@@ -41,6 +41,9 @@
 ### Lidar
 - Connected through USB2LDS to the USB port of the Raspberry Pi  
 
+## Wiring Diagram
+![Electrical Wiring Diagram](Images/wiring_diagram.png)
+
 ## Notes
 - Ensure all components share a **common ground** (OpenCR, Raspberry Pi, and L298N)
 - PWM is used to control motor speed and servo position
