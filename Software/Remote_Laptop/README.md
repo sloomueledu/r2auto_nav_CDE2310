@@ -833,5 +833,3 @@ entry_points={
 After any change to `setup.py`, run `colcon build --symlink-install` in the workspace root to apply changes.
 
 ---
-
-*All parameter values are taken directly from the source files as reviewed on 2026-04-19.*
