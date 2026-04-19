@@ -53,8 +53,9 @@
 - USB2LDS → Raspberry Pi via USB
 
 ### OpenCR
-- Connected to Raspberry Pi via UART (bidirectional)
-- Runs the TurtleBot3 ROS 2 serial bridge, exposing wheel odometry and motor control to the Raspberry Pi over this link
+- Connected to Raspberry Pi via USB cable
+- Appears as /dev/ttyACM0 on the Raspberry Pi
+- Runs the TurtleBot3 ROS 2 serial bridge, exposing wheel odometry and motor control as ROS 2 topics
 
 ## Wiring Diagram
 
@@ -99,7 +100,6 @@ This section outlines how power is distributed throughout the system and how sig
 - The Raspberry Pi 4B acts as the main controller, handling sensor processing, decision-making, and overall system logic.
 - Communication interfaces are structured as follows:
   - **UART (bidirectional):**
-    - OpenCR ↔ Raspberry Pi — runs the TurtleBot3 ROS 2 serial bridge, exposing wheel odometry and Dynamixel motor commands as ROS 2 topics
     - LDS-2 LiDAR ↔ USB2LDS — raw UART sensor data, converted to USB for the Raspberry Pi
   - **TTL Serial:**
     - OpenCR ↔ DYNAMIXEL XL430-W250 motors — OpenCR manages all Dynamixel communication internally via the TTL bus
@@ -108,6 +108,7 @@ This section outlines how power is distributed throughout the system and how sig
     - SG90 servo (GPIO12 hardware PWM)
     - HC-SR04 ultrasonic sensor (TRIG/ECHO via GPIO24/GPIO23)
   - **USB (high-bandwidth data):**
+    - OpenCR → Raspberry Pi via USB (/dev/ttyACM0). Runs the TurtleBot3 ROS 2 serial bridge over USB-serial.
     - USB camera → Raspberry Pi (image data)
     - USB2LDS → Raspberry Pi (LiDAR data)
 
