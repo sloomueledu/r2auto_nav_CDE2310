@@ -176,7 +176,8 @@ The Flowchart Below Gives a High-Level Breakdown of the process behind Path Plan
     * `pooled_w`: Width of pooled map
     * `pooled_h`: Heigh of pooled map
     * `use_inflation`: Boolean to control whether the AStar search uses inflation
-> **Note**: `occ_pooled` and `wall_dist` are the same as `planroute()`
+    * `occ_pooled`
+    * `wall_dist`
 * Returns:
     * `path`: The raw path found to the Goal point, empty if otherwise
     * `True`: Sets `found_path` to True if a valid path is found, `False` otherwise
@@ -224,6 +225,22 @@ Sets `self.sate` to `ESCAPING` if the path ahead is clear after the recovery tur
 
 ### DOCKING 
 
-##  
+## PAYLOAD DELIVERY  
+The Payload Delivery Sequence is Coordinated between ECL and RPI via two key topis:  
 
+1. `/gpio_comands`: ECL informs RPI which Station Logic to Execute
+2. `rpi_response`: RPI informs ECL of completion of Station  
+
+The codebase which handles this coordination can be found in these two programs:  
+
+ECL: [r2CDE2310_ws](./Remote_Laptop/Live_Code/r2CDE2310_FINAL.py)  
+RPI: [rpilivecode](./RPI/rpilivecode.py)  
+
+The flowchart below gives a High Level Explanation of this process:
+
+ECL Seqence:  
+![ECL](./assets/ECLPayloadSequence.png)
+
+RPI Sequence:  
+![RPI](./assets/RPIControlFlow.png)
 

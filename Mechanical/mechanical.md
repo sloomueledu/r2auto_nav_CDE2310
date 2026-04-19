@@ -62,8 +62,6 @@ The mechanical system consists of:
 4. The ball enters the tube and contacts the single flywheel  
 5. The flywheel accelerates the ball and launches it horizontally  
 
-**[insert isometric full CAD showing entire robot]**
-
 ---
 
 ## Key Subsystems
@@ -78,7 +76,7 @@ The mechanical system consists of:
 - No vertical blockage of sensors  
 - Efficient use of space around the robot  
 
-**[insert top or angled view showing circular ball storage around robot]**
+
 
 ---
 
@@ -97,13 +95,11 @@ The feeder mechanism controls how balls enter the shooting tube.
   - The previously blocked ball is released  
   - The next ball is simultaneously stopped  
 
-**[insert close-up CAD of rotating arm with protrusions]**
 
 - Ensures **single-ball feeding**
 - Prevents **double feeding and jamming**
 - Provides **consistent timing control**
 
-**[insert second image showing different arm position (release vs block)]**
 
 ---
 
@@ -117,7 +113,6 @@ The feeder mechanism controls how balls enter the shooting tube.
 - Friction between the wheel and ball accelerates the ball forward  
 - The ball exits the tube horizontally  
 
-**[insert side view of shooting tube + flywheel + motor]**
 
 #### Design Considerations
 - Simpler than double flywheel systems  
@@ -160,7 +155,6 @@ Assuming conservative efficiency losses of ~40–60%, the effective launch veloc
 
 This ensures the system operates within an optimal performance range rather than at maximum speed.
 
-**[insert zoomed-in view showing ball–flywheel contact region]**
 
 ---
 
@@ -171,11 +165,11 @@ This ensures the system operates within an optimal performance range rather than
   - Feeder mechanism  
   - Launcher assembly  
 
-**[insert side view showing multiple layers]**
+
 
 - The **LiDAR is elevated** to maintain a clear field of view  
 
-**[insert image clearly showing raised LiDAR relative to structure]**
+
 
 #### Materials & Fasteners
 - Structure primarily uses **3D-printed components**
@@ -327,4 +321,4 @@ The final mechanical system:
 - Maintains **sensor visibility** through a raised LiDAR
 - Ensures stability through **distributed mass and reinforced structure**
 
-**[insert exploded CAD showing components separated]**
+
