@@ -1,95 +1,118 @@
 # Electrical Documentation
 
 ## Components Used
+
 ### TurtleBot Components
 - OpenCR (32-bit ARM Cortex-M7)
-- Raspberry Pi
-- DYNAMIXEL Motor
+- Raspberry Pi 4B
+- 2x DYNAMIXEL XL430-W250 Motors
 - 11.1V LiPo Battery
 - L298N Motor Driver
 - SG90 Servo Motor
 - RS360 DC Motor
 - HC-SR04 Ultrasonic Sensor
 - 720p USB Camera
-- 360 degree LiDAR
+- LDS-2 360° LiDAR
 
 ## Connections
+
 ### SG90 Servo
-- VCC → 5V rail from Raspberry Pi  
-- GND → Common ground  
-- Signal → PWM-capable GPIO pin on Raspberry Pi  
+- VCC → 5V rail from Raspberry Pi
+- GND → Common ground
+- Signal → GPIO12 (hardware PWM) on Raspberry Pi
 
 ### L298N Motor Driver
+
 #### Power
-- VCC → 12V rail from OpenCR  
+- VCC → 11.1V rail from OpenCR (battery rail)
 - GND → Common ground (OpenCR)
+
 #### Control Signals
-- ENA (Enable Pin) → PWM-capable GPIO pin on Raspberry Pi (for speed control)  
-- IN1, IN2 → Digital GPIO pins on Raspberry Pi (for direction control)  
+- ENA (Enable Pin) → GPIO13 (hardware PWM) on Raspberry Pi (for speed control)
+- IN1 → GPIO25 on Raspberry Pi (direction control)
+- IN2 → GPIO8 on Raspberry Pi (direction control)
+
 #### Motor Output
-- OUT1, OUT2 → Connected to the two terminals of the RS360 DC motor  
+- OUT1, OUT2 → Connected to the two terminals of the RS360 DC motor
 
 ### HC-SR04 Ultrasonic Sensor
-- VCC → 5V rail from Raspberry Pi  
-- GND → Common ground  
-- TRIG → Digital GPIO pin on Raspberry Pi  
-- ECHO → Connected to GPIO via voltage divider (5V → 3.3V)
+- VCC → 5V rail from Raspberry Pi
+- GND → Common ground
+- TRIG → GPIO24 on Raspberry Pi
+- ECHO → GPIO23 on Raspberry Pi via voltage divider (1kΩ and 2kΩ resistors, 5V → 3.3V)
+
+### DYNAMIXEL XL430-W250 Motors
+- Connected to OpenCR via TTL serial (3-pin JST connector)
+- OpenCR manages all Dynamixel communication and control internally
 
 ### USB Camera
-- Connected directly to the USB port of the Raspberry Pi
+- Connected directly to a USB port on the Raspberry Pi
 
-### LiDAR
-- Connected through USB2LDS to the USB port of the Raspberry Pi  
+### LDS-2 LiDAR
+- LiDAR ↔ USB2LDS via UART
+- USB2LDS → Raspberry Pi via USB
+
+### OpenCR
+- Connected to Raspberry Pi via UART (bidirectional)
+- Runs the TurtleBot3 ROS 2 serial bridge, exposing wheel odometry and motor control to the Raspberry Pi over this link
 
 ## Wiring Diagram
+
 ![Electrical Wiring Diagram](Electrical%20Diagrams/Wiring%20Diagram.png)
 
 ## Raspberry Pi Pin Mapping
-Pin numbering follows the BCM (Broadcom SOC channel) convention
-| Category     | Function              | GPIO (BCM) | Description                       |
-|-------------|----------------------|-----------|-----------------------------------|
-| PWM         | Servo Signal         | GPIO12    | PWM control for SG90 servo        |
-| PWM         | Motor Enable (ENA)   | GPIO13    | PWM speed control for L298N       |
-| Motor       | Direction IN1        | GPIO25    | Direction control input           |
-| Motor       | Direction IN2        | GPIO8     | Direction control input           |
-| Sensor      | Ultrasonic TRIG      | GPIO24    | Trigger signal                    |
-| Sensor      | Ultrasonic ECHO      | GPIO23    | Via voltage divider (5V → 3.3V)   |
+
+Pin numbering follows the BCM (Broadcom SOC channel) convention.
+GPIO12 and GPIO13 are the dedicated hardware PWM pins on the Raspberry Pi 4B — use these for servo and motor enable to ensure precise timing. Software PWM on other pins will work but is less accurate.
+
+| Category | Function           | GPIO (BCM) | Description                          |
+|----------|--------------------|------------|--------------------------------------|
+| PWM      | Servo Signal       | GPIO12     | Hardware PWM control for SG90 servo  |
+| PWM      | Motor Enable (ENA) | GPIO13     | Hardware PWM speed control for L298N |
+| Motor    | Direction IN1      | GPIO25     | Direction control input              |
+| Motor    | Direction IN2      | GPIO8      | Direction control input              |
+| Sensor   | Ultrasonic TRIG    | GPIO24     | Trigger signal                       |
+| Sensor   | Ultrasonic ECHO    | GPIO23     | Via voltage divider (5V → 3.3V)      |
 
 ## Power and Communication Architecture
+
 This section outlines how power is distributed throughout the system and how signals are communicated between components.
 
 ### Power Architecture
-![Power Architecture](Electrical%20Diagrams/Power%20Architecture.png)
 
+![Power Architecture](Electrical%20Diagrams/Power%20Architecture.png)
 *Figure: Power distribution across system components*
 
 - The system is powered by an 11.1V LiPo battery connected to the OpenCR board.
-- The OpenCR board distributes power to high-power components such as the L298N motor driver, RaspberryPi, and Dynamixel Motors.
+- The OpenCR board distributes power to high-power components such as the L298N motor driver, Raspberry Pi, and DYNAMIXEL motors.
 - The Raspberry Pi provides a regulated 5V supply to low-power components including the SG90 servo, HC-SR04 ultrasonic sensor, and USB peripherals.
-- High-power components (e.g., RS360 motor) draw power through the L298N motor driver, which is supplied by the OpenCR.
-- All components share a common ground to ensure consistent voltage reference and reliable operation.
+- High-power components (e.g., RS360 motor) draw power through the L298N motor driver, which is supplied directly from the OpenCR battery rail.
+- All components share a common ground to ensure a consistent voltage reference and reliable operation.
 
 ---
 
 ### Communication Architecture
-![Communication Architecture](Electrical%20Diagrams/Communication%20Architecture.png)
 
+![Communication Architecture](Electrical%20Diagrams/Communication%20Architecture.png)
 *Figure: Communication and signal flow between system components*
 
-- The Raspberry Pi acts as the main controller, handling sensor processing, decision-making, and overall system logic.
+- The Raspberry Pi 4B acts as the main controller, handling sensor processing, decision-making, and overall system logic.
 - Communication interfaces are structured as follows:
+  - **UART (bidirectional):**
+    - OpenCR ↔ Raspberry Pi — runs the TurtleBot3 ROS 2 serial bridge, exposing wheel odometry and Dynamixel motor commands as ROS 2 topics
+    - LDS-2 LiDAR ↔ USB2LDS — raw UART sensor data, converted to USB for the Raspberry Pi
+  - **TTL Serial:**
+    - OpenCR ↔ DYNAMIXEL XL430-W250 motors — OpenCR manages all Dynamixel communication internally via the TTL bus
   - **GPIO / PWM (low-level control signals):**
-    - L298N motor driver (direction via digital output, speed via PWM)
-    - SG90 servo (PWM control)
-    - HC-SR04 ultrasonic sensor (TRIG/ECHO signals via GPIO)
-
-  - **USB (high-bandwidth data communication):**
-    - USB camera (image data acquisition)
-    - LiDAR via USB2LDS interface (sensor data acquisition)
-
-  - **USB (controller interfacing):**
-    - OpenCR board (communication with TurtleBot base and Dynamixel motors)
+    - L298N motor driver (direction via GPIO25/GPIO8, speed via GPIO13 PWM)
+    - SG90 servo (GPIO12 hardware PWM)
+    - HC-SR04 ultrasonic sensor (TRIG/ECHO via GPIO24/GPIO23)
+  - **USB (high-bandwidth data):**
+    - USB camera → Raspberry Pi (image data)
+    - USB2LDS → Raspberry Pi (LiDAR data)
 
 ## Notes
-- Ensure all components share a **common ground** (OpenCR, Raspberry Pi, Sensors, and L298N)
-- A voltage divider is used on the ECHO pin to safely step down the signal from 5V to 3.3V using a 2:1 resistor ratio
+- Ensure all components share a **common ground** (OpenCR, Raspberry Pi, sensors, and L298N)
+- The voltage divider on the ECHO pin uses a **1kΩ and 2kΩ resistor** in series to step 5V down to ~3.3V — connecting the ECHO pin directly without this will damage the Raspberry Pi GPIO
+- GPIO12 and GPIO13 are the only hardware PWM pins on the Raspberry Pi 4B — these are used for the servo and motor enable respectively to ensure precise PWM timing
+- The OpenCR ↔ Raspberry Pi UART link runs the TurtleBot3 bringup (`ros2 launch turtlebot3_bringup robot.launch.py`) — this must be running for `/cmd_vel` and `/odom` topics to be active
