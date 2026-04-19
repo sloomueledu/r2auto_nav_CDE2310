@@ -45,6 +45,11 @@ The mechanical system consists of:
 - A **raised LiDAR mount**
 - A **multi-layer structural frame** to support all components
 
+<img width="613" height="552" alt="image" src="https://github.com/user-attachments/assets/22c071a0-5618-4004-9890-f41c87f69485" />
+<img width="862" height="845" alt="image" src="https://github.com/user-attachments/assets/400238fd-27d2-4fff-b5d5-64da1a8a7249" />
+<img width="743" height="504" alt="image" src="https://github.com/user-attachments/assets/4992d659-9515-44a5-a8b3-127f88a6708b" />
+
+
 ### Working Principle
 1. Balls are stored in the inclined housing around the robot  
 2. Gravity guides balls toward the feeder entrance  
