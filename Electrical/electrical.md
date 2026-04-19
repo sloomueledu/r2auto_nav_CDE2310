@@ -123,7 +123,7 @@ A power budget analysis was conducted to ensure that the system can operate reli
 ### Key Results
 - Total Energy Consumption per Mission: ~4.98 Wh
 - Estimated Number of Missions per Charge: ~4 full cycles
-- 
+  
 ### Observations
 - The majority of energy consumption occurs during the navigation phase due to continuous operation of the TurtleBot base, LiDAR, and camera.
 - High-power components such as the RS360 motor and L298N driver contribute significant power draw, but only for short durations during target engagement.
