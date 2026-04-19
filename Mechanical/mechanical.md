@@ -230,21 +230,61 @@ This ensures the system operates within an optimal performance range rather than
 
 ## Iterative Design Changes
 
+The mechanical system underwent multiple design iterations to improve reliability, consistency, and overall performance.
+
+---
+
+### Launch Consistency (Major Iteration)
+- Initial launches were inconsistent, with the ball deviating vertically after exiting the flywheel  
+- This reduced accuracy due to the small size of the payload target  
+
+**Fix:**  
+- Added a **guiding nozzle** after the flywheel to constrain the ball trajectory  
+
+**Result:**  
+- Significantly improved shot consistency  
+- Reduced vertical deviation  
+- Increased accuracy when targeting the payload hole  
+
+![Design Iteration](Diagrams/Iteration.png)
+
+---
+
+### Flywheel Configuration (Motor Reduction)
+- Initial design used **dual flywheel motors**, resulting in excessive speed, vibration, and unnecessary power usage  
+
+**Fix:**  
+- Simplified to a **single RS360 motor flywheel**  
+
+**Result:**  
+- Sufficient launch velocity maintained  
+- Reduced vibration and improved stability  
+- Lower power consumption  
+
+---
+
 ### Feeding Reliability Issues
-- Balls occasionally jammed at entry  
-**Fix:** Adjusted spacing and protrusion geometry on the rotating arm  
+- Balls occasionally jammed at the feeder entrance  
+
+**Fix:**  
+- Adjusted spacing and protrusion geometry on the rotating arm  
+
+**Result:**  
+- Reliable single-ball feeding  
+- Eliminated double-feeding and jamming  
+
+---
 
 ### LiDAR Obstruction
-- Initial design partially blocked sensor  
-**Fix:** Raised LiDAR to a higher mounting position  
+- Initial design partially blocked the LiDAR field of view  
 
-### Structural Stability
-- Added layer introduced slight flexing  
-**Fix:** Reinforced supports and improved mounting using M4 fasteners  
+**Fix:**  
+- Raised LiDAR to a higher mounting position  
 
-### Launch Consistency
-- Initial shots were inconsistent  
-**Fix:** Improved alignment of flywheel and shooting tube  
+**Result:**  
+- Restored full sensor visibility  
+- Improved navigation reliability  
+
 
 ---
 
