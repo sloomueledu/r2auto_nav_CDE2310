@@ -26,17 +26,17 @@ Please ensure that you have calibrated your USB Camera properly. To do so, refer
 cd ~/colcon_ws/src  
 git clone <insert_ssh_link>  
 ```  
-1. Navigate to the following folder:  
+4. Navigate to the following folder:  
 ```  
 cd ~/colcon_ws/src/ros2_aruco/ros2_aruco  
 ```  
-1. Replace the `package.xml` and `setup.py` files with the provided corresponding files  
-1. Navigate to the following folder:  
+5. Replace the `package.xml` and `setup.py` files with the provided corresponding files  
+6. Navigate to the following folder:  
 ```  
 cd ros2_aruco  
 ```  
-1. Copy the provided `usbcam1.py` file into the folder  
-1. Rebuild the package:  
+7. Copy the provided `usbcam1.py` file into the folder  
+8. Rebuild the package:  
 ```  
 cd ~/colcon_ws  
 colcon build --packages-select ros2_aruco  

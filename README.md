@@ -1,6 +1,20 @@
 ![NUS LOGO](./assets/NUSLOGO.png)
 # GROUP 2 REPOSITORY FOR CDE2310 - FUNDAMENTALS OF SYSTEMS DESIGN 
 
+## THE TEAM BEHIND   
+![Group 2](./assets/photo_2026-04-14_21-22-09.jpg)  
+Left to Right: LOO ZHONG EN SAMUEL, UDAIYAN BHAN, ARAVIND THEJUS, REAGAN MOSES WIDJAJA   
+
+## ROBOT PHOTOS  
+![FRONT](./assets/Front.jpg)  
+Front View  
+
+![SIDE](./assets/Side.jpg)  
+Side View  
+
+![BACK](./assets/Back.jpg)  
+Back View
+
 ## INTRODUCTION  
 ### MISSION OVERVIEW  
 For this project, we are tasked to design and build an Autonomous Mobile Robot that can handle and execute complex warehouse logistics. The robot must be able to self-navigate, identify visual landmarks, and deliver its payloads precisely, and sequentially if required, at each station. As a challenge, one of the stations will have a moving target.
