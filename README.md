@@ -52,7 +52,11 @@ We have defined our requirements as such:
 ### CON-OPS  
 
 ## SYSTEM OVERVIEW
-### HIGH LEVEL DESIGN  
+The system is a **TurtleBot3-class autonomous mobile platform** with a **Raspberry Pi 4**, **360° LiDAR**, **USB camera**, and a **custom ping-pong payload** (servo-fed chute, flywheel launcher, ultrasonic tripwire). Compute is split: a **remote laptop** runs ROS 2 navigation and mission logic (`auto_nav`, `r2CDE2310_FINAL.py`); an **onboard Raspberry Pi** runs sensor drivers, vision nodes as launched for the mission, and **GPIO** for payload actuation.
+
+The mission loop: consume an **occupancy grid** for planning, **explore** until a valid **ArUco station marker** appears in the docking window, **dock** via polar-arc visual control, publish a **payload command** string, block on **completion** from the Pi, then repeat for the remaining station. **Line-following is not used**; motion is driven by LiDAR, map data, TF pose, and ArUco poses. The deployed evaluation configuration implements **Stage 1** (two stations); bonus lift/API behaviour is not present in the final mission stack (see Mission Objectives note above).
+
+### HIGH LEVEL DESIGN
 
 ### INTERFACE CONTROL
 
