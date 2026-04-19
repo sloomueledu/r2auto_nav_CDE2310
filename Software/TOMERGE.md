@@ -223,7 +223,19 @@ The Flowchart Below Gives a High-Level Breakdown of the Obstacle Avoidance & Rec
 `recoverySequence()` 
 Sets `self.sate` to `ESCAPING` if the path ahead is clear after the recovery turn has been executed. If the robot encounters 3 or more obstacles along the path to the same goal point, the goal point will be reset and `planroute()` will plan a path to a different goal.
 
+**Path Execution**
+Path Execution is handled by the function `mover()` and the State Machine `controller()`. Below is a flowchart which explains their control flow:
+
+`mover()`:
+![mover()](./assets/Mover.png)
+
+`controller()`:
+![controller()](./assets/Controller.png)
+
 ### DOCKING 
+
+### AutoPilot State Machine
+The AutoPilot has a variable `self.state` which keeps track of the status the Robot at each step of the way. This is done via the function `
 
 ## PAYLOAD DELIVERY  
 The Payload Delivery Sequence is Coordinated between ECL and RPI via two key topis:  
@@ -242,5 +254,7 @@ ECL Seqence:
 ![ECL](./assets/ECLPayloadSequence.png)
 
 RPI Sequence:  
-![RPI](./assets/RPIControlFlow.png)
+![RPI](./assets/RPILOGIC.png)
 
+## TESTING  
+Testing Documentation can be found here: [Testing](./Remote_Laptop/Testing_Code/)
