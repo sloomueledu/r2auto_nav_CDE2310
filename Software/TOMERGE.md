@@ -96,7 +96,7 @@ The `AutoPilot` Class is arguably, the most important class in the entire `r2CDE
 **Navigation Subscriptions:**  
 * `/map`: For `OccupancyGrid` Information, provides details on the current position of the TurtleBot3, as well as a map of its current surroundings, used for path planning
 * `/scan`: For LiDAR Data, used in obstacle avoidance
-
+* `/base_link`: Current Positional Data of the Robot with respect to the map frame
 
 **Navigation Publishers:**  
 * `/cmd_vel`: For Publishing Linear Speed and Angular Velocity Commands to allow the TurtleBot3 to move
@@ -138,3 +138,6 @@ The `AutoPilot` Class is arguably, the most important class in the entire `r2CDE
 |`self.res`|Resolution of the Map|NA|NA|
 |`self.origin`|Map Origin|NA|NA|
 |`self.occdata`|Array to Store Map Data from `/map` subscription|NA|NA|
+|`self.timer`|Loop Frequency at which `self.controller` is called at to ensure smooth operation|`timer_period` = 0.1|NO|
+
+
