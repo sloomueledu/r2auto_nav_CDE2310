@@ -159,7 +159,7 @@ The `AutoPilot` Class is arguably, the most important class in the entire `r2CDE
     * Publishes a `/cmd_vel` topic to stop the Robot  
 
 **Path Planing Functions** 
-The Flowchart Below Gives a High-Level Breakdown of the process behind Path Planning:
+The Flowchart Below Gives a High-Level Breakdown of the process behind Path Planning:  
 ![Path Planing Algo](./assets/PathPlanAlgo.png)
 
 `planroute()`
@@ -311,7 +311,7 @@ Final output:  MapNode list in map-frame metres, ready for RPP
 ---
 
 **Obstacle Avoidance & Recovery Functions**
-The Flowchart Below Gives a High-Level Breakdown of the Obstacle Avoidance & Recovery Process:
+The Flowchart Below Gives a High-Level Breakdown of the Obstacle Avoidance & Recovery Process:   
 ![Recovery Sequence](./assets/RecoverySequenceAlgo.png)
 
 `checkObstacles()`  
