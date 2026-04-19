@@ -140,4 +140,73 @@ The `AutoPilot` Class is arguably, the most important class in the entire `r2CDE
 |`self.occdata`|Array to Store Map Data from `/map` subscription|NA|NA|
 |`self.timer`|Loop Frequency at which `self.controller` is called at to ensure smooth operation|`timer_period` = 0.1|NO|
 
+**Utility Functions**  
+`_line_of_sight()`  
+* Arguments:  
+    * `x0`, `y0`: x and y coordinates of first cell on the pooled (downscaled) map  
+    * `x1`, `y1`: x and y coordinates of the second cell on the pooled (downscaled) map
+    * `occ_pooled`: Downscaled Map
+    * `wall_dist`: Distance Transform Map (or simply, a cost map) which stores the calculated distance between map cells to their respective nearest wall
+* Returns:
+    * A Boolean value deepending on whether the straight line between two pooled-grid cells is free of walls and stays at least 1 cell away from any wall
+
+`get_orientation()`  
+* Returns:
+    * Current Orientation of the Robot
+
+`stopbot()`  
+* Returns:
+    * Publishes a `/cmd_vel` topic to stop the Robot  
+
+**Path Planing Functions** 
+The Flowchart Below Gives a High-Level Breakdown of the process behind Path Planning:
+![Path Planing Algo](./assets/Planpathalgo.drawio.png)
+
+`planroute()`
+* Arguments:
+    * `goal`: Defined Goal Point that the Robot is going to  
+    * `allow_unknown`: Boolean to control whether the Robot is allowed to travel to an unknown area in the Map
+* Returns:
+    * `path`: Planned Route to the Found Goal Point, empty if otherwise
+
+`_astar()`  
+* Arguments:
+    * `sx` & `sy`: Starting Point Coordinates on the pooled map
+    * `gx` &`gy`: Goal Point Coordinates on the pooled map
+    * `pooled_w`: Width of pooled map
+    * `pooled_h`: Heigh of pooled map
+    * `use_inflation`: Boolean to control whether the AStar search uses inflation
+> **Note: `occ_pooled` and `wall_dist` are the same as `planroute()`
+* Returns:
+    * `path`: The raw path found to the Goal point, empty if otherwise
+    * `True`: Sets `found_path` to True if a valid path is found, `False` otherwise
+
+`_bfs_frontier()`  
+* Arguments:
+    * `sx` & `sy`
+    * `gx` &`gy`
+    * `pooled_w`
+    * `pooled_h`
+    * `occ_pooled`
+    * `wall_dist`
+* Returns:
+    * `raw_path`: The raw path found to the Goal point, empty if otherwise
+    * `True`: Sets `found_path` to True if a valid path is found, `False` otherwise
+
+**Obstacle Avoidance & Recovery Functions**
+The Flowchart Below Gives a High-Level Breakdown of the Obstacle Avoidance & Recovery Process:
+
+
+`checkObstacles()`  
+
+`turn_in_place()`  
+
+`evaluate_escape_direction()`  
+
+`recoveryTurn()`  
+
+`recoverySequence()`  
+
+## DOCKING  
+
 
