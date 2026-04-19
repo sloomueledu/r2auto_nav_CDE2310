@@ -60,7 +60,7 @@ As the name suggests, this is a helper class that makes use of Regulated Pure Pu
     * `cur_y`: Current y-coordinate of the Turtlebot3 on the map  
     * `path`: An array, determined by the path planning algorithm, that contains waypoints that lead to a defined Goal Point
 * Returns:
-    * Target Waypoint that is the first waypoint beyond `self.lookaheaddist` away from the current TurtleBot3's position  
+    * Sets `target` to be the first waypoint beyond `self.lookaheaddist` away from the current TurtleBot3's position  
 
 `command()`
 * Arguments:
@@ -72,3 +72,69 @@ As the name suggests, this is a helper class that makes use of Regulated Pure Pu
     * `twist`: Computed linear speed & angular velocity for the TurtleBot3 to execute to reach the target waypoint. However, what it returns is situation dependent. The flowchart below explains this process in detail:  
     ![RPP CONTROL FLOW](./assets/RPPControlFlow.png)
 
+### MapNode  
+This helper class is used by our Breadth First Search (BFS) Path Planning Algorithm to categorise each of the coordinates on the map as well as generate a list of neighbours for each point.  
+
+**PARAMETERS**  
+| PARAMETER | DESCRIPTION |
+|-----------|-------------|
+|`self.x`|x-coordinate of point on the map with respect to the map frame|
+|`self.y`|y-coordinate of the point on the map with respect to the map frame|
+|`self.parent`|The parent of the point|
+
+**FUNCTIONS** 
+`generate_neighbours()`  
+* Arguments:
+    * `max_x`: maximum x-value along the x-axis of the map frame  
+    * `max_y`: maximum y-value along the y-axis of the map frame  
+* Returns:
+    * `neighbours`: an array of adjacent neighbours to the point on the map
+
+### AutoPilot  
+The `AutoPilot` Class is arguably, the most important class in the entire `r2CDE2310_FINAL.py` codebase. It contains the logic for Path Planning, Docking, Obstacle Avoidance, as well as coordinates control handoff between the ECL and RPI for Payload Delivery. Since this section is with regards to Navigation, we will only focus on key parameters & functions that enables the TurtleBot3 to move around its environment autonomously.  
+
+**Navigation Subscriptions:**  
+* `/map`: For `OccupancyGrid` Information, provides details on the current position of the TurtleBot3, as well as a map of its current surroundings, used for path planning
+* `/scan`: For LiDAR Data, used in obstacle avoidance
+
+
+**Navigation Publishers:**  
+* `/cmd_vel`: For Publishing Linear Speed and Angular Velocity Commands to allow the TurtleBot3 to move
+* `/goal_marker`: Allows users to visualise the current Goal Point that the TurtleBot3 is heading towards on RVis
+* `/lookahead_marker`: Allows users to visualise the current waypoint that the TurtleBot3 is moving to along the Path to the Goal Point on RVis
+* `/planned_path`: Alows users to visualise the overall path planned on RVis  
+
+**Navigation Parameters**  
+| PARAMETER | DESCRIPTION | CURRENT SETTING | TUNABLE |
+|:---------:|-------------|:---------------:|:-------:|
+|`STOP_DISTANCE`|Front Distance at which the Obstacle Avoidance Sequence will Trigger|0.30|YES|
+|`SIDE_THRESHOLD`|Side Distance at which Obstacle Avoidance Sequence will Trigger|0.25|YES|
+|`GOAL_THRESHOLD`|Distance from Goal Point to Robot in which it is considered as Goal Reached|
+|`SCANFILE`|File in which LiDAR Data is saved in for Diagnostics|lidar.txt|YES|
+|`MAPFILE`|File in which Map Data is saved in for Diagnostics|map.txt|YES|
+|`WALL_THRESHOLD`|Value of Cells in the map which are considered as obstacles|50|YES|
+|`INFLATE_RADIUS`|Inflation Radius Value for AStar Path Planning|0|YES|
+|`DIRECTIONS_8`|Array of cardinal directions that allows the AStar Path Planner to generate and search surrounding neighbours|refer to codebase|NO|
+|`self.path`|An Array of Waypoints returned by the path planning algorithm for the Robot to follow|NA|NO|
+|`self.boink`|A Tracker to count the number of times the Robot Encounters an obstacle as it moves to the Goal Point|0|NO|
+|`self.goal`|X & Y Coordinates of the Goal Point Found during Path Planning|None|NO|
+|`self.state`|State Tracker of Robot for State Machine Logic|'PLANNING'|NO|
+|`self.rotation_start_time`|Time which the Robot started to Turn on the Spot|None|NO|
+|`self.escape_direction_locked`|The Direction in which the Robot will rotate towards during the Recovery Sequence|None|NO|
+|`self.escape_start_time`|Time which the Robot started its escape sequence|None|None|
+|`self.escape_duration`|Time (in seconds) for which the Robot will move during the escape sequence|1.0|YES|
+|`self.escape_speed`|Speed in which the Robot will move at during the escape sequence|0.15|YES|
+|`self.front_fov`|Front LiDAR Field of View (FOV) of the Robot|80|YES|
+|`self.turning_timeout`|Cut off timing to prevent the Robot from rotating on the spot for excessive periods|8.0|YES|
+|`self.recovery_angle`|Angle which the Robot aims to turn to during the Recovery Sequence|None|NO|
+|`self.turn_angle_by`|Angle Steps (in Radians) that the Robot will Turn in during the Recovery Sequence|pi/18 (10 Degrees)|YES|
+|`self.wallinfdist`|Dictates how far the robot looks around each path waypoint to check for walls|3|YES (must be integers)|
+|`self.maxshift`|Maximum value that path waypoints are shifted by with respect to the nearest wall|1,5|YES|
+|`self.pre_recovery_state`|Saves the current state of the Robot before the recovery sequence is executed|None|NO|
+|`self.front`|Array of LiDAR Data points that makes up the Front FOV|NA|NA|
+|`self.left`|Array of LiDAR Data points that makes up the Left FOV|NA|NA|
+|`self.right`|Array of LiDAR Data points that makes up the Right FOV|NA|NA|
+|`self.back`|Array of LiDAR Data points that makes up the Back FOV|NA|NA|
+|`self.res`|Resolution of the Map|NA|NA|
+|`self.origin`|Map Origin|NA|NA|
+|`self.occdata`|Array to Store Map Data from `/map` subscription|NA|NA|
