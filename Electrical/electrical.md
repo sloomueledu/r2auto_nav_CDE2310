@@ -6,6 +6,7 @@
 - SG90 Servo Motor
 - RS360 DC Motor
 - HC-SR04 Ultrasonic Sensor
+- 720p USB Camera
 
 ## Connections
 ### SG90 Servo
@@ -29,7 +30,10 @@
 - TRIG → Digital GPIO pin on Raspberry Pi  
 - ECHO → Connected to GPIO via voltage divider (5V → 3.3V)
 
+### USB Camera
+- Connected directly to the USB port of the Raspberry Pi  
+
 ## Notes
 - Ensure all components share a **common ground** (OpenCR, Raspberry Pi, and L298N)
 - PWM is used to control motor speed and servo position
-- A voltage divider is used on the ECHO pin to safely step down the signal from 5V to 3.3V 
+- A voltage divider is used on the ECHO pin to safely step down the signal from 5V to 3.3V
