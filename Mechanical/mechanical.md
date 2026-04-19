@@ -109,7 +109,7 @@ The feeder mechanism controls how balls enter the shooting tube.
 
 ### 3. Launching Mechanism (Single Flywheel)
 
-- A **single flywheel motor ([motor name])** is mounted on the side of the shooting tube  
+- A **single flywheel motor (RS360)** is mounted on the side of the shooting tube  
 - The ball is pressed between the flywheel and the tube wall  
 
 #### Working Principle
@@ -124,6 +124,41 @@ The feeder mechanism controls how balls enter the shooting tube.
 - Requires careful tuning to ensure:
   - Sufficient launch speed  
   - Minimal deviation in trajectory  
+
+### Motor Selection (Flywheel)
+
+The flywheel motor was selected based on the required launch velocity to deliver a ping pong ball to the target at an approximate docking distance of 20 cm.
+
+#### Motor Specifications
+- Motor: RS360 DC Motor  
+- No-load Speed: 12000 RPM  
+
+#### Tangential Velocity Estimation
+Assuming a flywheel radius of approximately 20 mm (0.02 m):
+
+- Angular speed:
+  ω = 12000 × (2π / 60) ≈ 1256 rad/s  
+
+- Tangential velocity:
+  v = ωr ≈ 1256 × 0.02 ≈ 25.1 m/s  
+
+#### Practical Considerations
+- The theoretical velocity is significantly higher than required for a 20 cm horizontal launch.
+- In practice, several losses reduce the effective velocity:
+  - Motor load due to ball contact  
+  - Friction losses in the flywheel–ball interface  
+  - Voltage drop and inefficiency from the L298N motor driver  
+
+Assuming conservative efficiency losses of ~40–60%, the effective launch velocity remains well above the minimum required.
+
+#### Conclusion
+- The RS360 motor provides more than sufficient rotational speed for the application.
+- Excess speed is advantageous as it allows tuning via PWM control.
+- The motor speed is reduced using the ENA (enable) pin of the L298N driver to achieve:
+  - Improved launch consistency  
+  - Reduced variability in trajectory  
+
+This ensures the system operates within an optimal performance range rather than at maximum speed.
 
 **[insert zoomed-in view showing ball–flywheel contact region]**
 
