@@ -18,7 +18,7 @@
 - VCC → 12V rail from OpenCR  
 - GND → Common ground (OpenCR)
 #### Control Signals
-- ENA (Enable Pin) → PWM-capable GPIO pin on Raspberry Pi(for speed control)  
+- ENA (Enable Pin) → PWM-capable GPIO pin on Raspberry Pi (for speed control)  
 - IN1, IN2 → Digital GPIO pins on Raspberry Pi (for direction control)  
 #### Motor Output
 - OUT1, OUT2 → Connected to the two terminals of the RS360 DC motor  
