@@ -370,6 +370,8 @@ This prevents the polar arc controller from starting at a wide oblique angle whe
 
 The polar arc controller drives a smooth converging curve from wherever the robot is standing directly to the dock face. No intermediate waypoints, no phases — just a continuous control law running at 10 Hz.
 
+![DOCKING LOGIC FLOW](./assets/Docking.png)
+
 **Camera Frame & Polar Coordinates**
 
 ```
