@@ -173,3 +173,6 @@ Single ROS 2 domain; laptop and Pi on one L2/L3 path so **DDS** discovery succee
 
 ## FINAL RUN VIDEOS LINK   
 [Final Run](https://drive.google.com/drive/folders/1luweJNYKmffXvNXEVjMBalpTRKWKpJ6U?usp=sharing)
+
+1st Half: https://youtu.be/SLfqiKDdjuU
+2nd Half: https://youtu.be/yEE_bq05PZ8
