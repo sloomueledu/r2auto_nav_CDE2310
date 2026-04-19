@@ -167,6 +167,7 @@ Single ROS 2 domain; laptop and Pi on one L2/L3 path so **DDS** discovery succee
 [RPI](./Software/RPI/)  
 
 ## TESTING DOCUMENTATION
+[Testing Documentation](./Software/Remote_Laptop/README.md)
 
 ## USER MANUAL  
 [User Manual](./General%20Docs/Group2_User_Manual%20-%20Google%20Docs.pdf)
