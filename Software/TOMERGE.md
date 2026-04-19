@@ -109,7 +109,7 @@ The `AutoPilot` Class is arguably, the most important class in the entire `r2CDE
 |:---------:|-------------|:---------------:|:-------:|
 |`STOP_DISTANCE`|Front Distance at which the Obstacle Avoidance Sequence will Trigger|0.30|YES|
 |`SIDE_THRESHOLD`|Side Distance at which Obstacle Avoidance Sequence will Trigger|0.25|YES|
-|`GOAL_THRESHOLD`|Distance from Goal Point to Robot in which it is considered as Goal Reached|
+|`GOAL_THRESHOLD`|Distance from Goal Point to Robot in which it is considered as Goal Reached|0.25|YES|
 |`SCANFILE`|File in which LiDAR Data is saved in for Diagnostics|lidar.txt|YES|
 |`MAPFILE`|File in which Map Data is saved in for Diagnostics|map.txt|YES|
 |`WALL_THRESHOLD`|Value of Cells in the map which are considered as obstacles|50|YES|
