@@ -57,6 +57,27 @@ The system is a **TurtleBot3-class autonomous mobile platform** with a **Raspber
 The mission loop: consume an **occupancy grid** for planning, **explore** until a valid **ArUco station marker** appears in the docking window, **dock** via polar-arc visual control, publish a **payload command** string, block on **completion** from the Pi, then repeat for the remaining station. **Line-following is not used**; motion is driven by LiDAR, map data, TF pose, and ArUco poses. The deployed evaluation configuration implements **Stage 1** (two stations); bonus lift/API behaviour is not present in the final mission stack (see Mission Objectives note above).
 
 ### HIGH LEVEL DESIGN
+**Compute partitioning**
+
+| Layer | Function |
+|--------|----------|
+| **Remote laptop** | `autopilot_node`: subscribes `map`, `scan`; TF (`map` ↔ `base_footprint` / `base_link`) for pose; frontier exploration; `A*` on pooled/inflated grid; **regulated pure pursuit**; **polar-arc ArUco docking**; publishes `cmd_vel`; debug topics `planned_path`, `goal_marker`, `lookahead_marker`; publishes `/gpio_commands`, subscribes `rpi_response`. |
+| **Raspberry Pi** | Bring-up as deployed; **USB camera** (`usb_cam`, e.g. `cameralaunch.py`); **ArUco** pipeline (e.g. `usbcam1` → `/usbcam1_markers`); LiDAR over USB; **`rpilivecode`**: subscribes `gpio_commands`, commands **L298N**, **SG90**, **HC-SR04** (Station B), publishes `rpi_response`. |
+| **OpenCR / base** | Differential drive from `cmd_vel`; TurtleBot3 motor interface. |
+
+**Navigation stack**
+
+- **Mapping**: `nav_msgs/OccupancyGrid` on `map` feeds grid-based planning (source: deployed SLAM / mapping stack).
+- **Exploration**: Frontier search over free/unknown cells until station markers are acquired.
+- **Global path**: `A*` search, 8-connected neighbourhood, downsampled grid, optional wall inflation; post-processing per [Software/README.md](./Software/README.md).
+- **Local tracking**: **Regulated Pure Pursuit** on `cmd_vel`; LiDAR angular sectors feed obstacle and recovery logic in the control timer.
+
+**Docking and payload**
+
+- **Docking**: Polar-arc law from camera-frame ArUco (`rho`, `alpha`); FOV and marker-loss rules per [Software/README.md](./Software/README.md).
+- **Payload handoff**: `autopilot_node` publishes **`A`** or **`B`** on `/gpio_commands`; `rpilivecode` executes Station A (timed drops) or Station B (ultrasonic tripwire); completion strings **`A COMPLETE`**, **`B COMPLETE`** on `rpi_response`.
+
+**Power and structure**: **11.1 V LiPo** → **OpenCR** distribution; Pi **GPIO** for launcher; **USB** for camera and LiDAR. Mechanical: annular storage, feeder, flywheel - see [Mechanical](./Mechanical/mechanical.md), [Electrical](./Electrical/electrical.md).
 
 ### INTERFACE CONTROL
 
