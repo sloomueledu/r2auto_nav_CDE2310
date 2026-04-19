@@ -80,6 +80,39 @@ The mission loop: consume an **occupancy grid** for planning, **explore** until 
 **Power and structure**: **11.1 V LiPo** → **OpenCR** distribution; Pi **GPIO** for launcher; **USB** for camera and LiDAR. Mechanical: annular storage, feeder, flywheel - see [Mechanical](./Mechanical/mechanical.md), [Electrical](./Electrical/electrical.md).
 
 ### INTERFACE CONTROL
+**ROS 2 connectivity**
+
+Single ROS 2 domain; laptop and Pi on one L2/L3 path so **DDS** discovery succeeds. Topic names and namespaces must match the launch configuration.
+
+| Direction | Topic / mechanism | Type / role |
+|-----------|-------------------|-------------|
+| → autopilot | `map` | `nav_msgs/OccupancyGrid` — planning, exploration |
+| → autopilot | `scan` | `sensor_msgs/LaserScan` — sector masks, safety |
+| → autopilot | `/usbcam1_markers` | `ros2_aruco_interfaces/ArucoMarkers` — station ID, pose |
+| → autopilot | `rpi_response` | `std_msgs/String` — `A COMPLETE`, `B COMPLETE` |
+| ← autopilot | `cmd_vel` | `geometry_msgs/Twist` — base velocity |
+| ← autopilot | `/gpio_commands` | `std_msgs/String` — `A`, `B` |
+| ← autopilot | `planned_path`, `goal_marker`, `lookahead_marker` | `nav_msgs/Path`, `visualization_msgs/Marker` — visualization |
+| Pi | `gpio_commands` | Subscribe — resolves with `/gpio_commands` under default `/` namespace |
+| Pi | `rpi_response` | Publish |
+
+**Transforms**
+
+`tf2_ros.Buffer` lookups: robot pose in `map` for planning and tracking (e.g. `map` → `base_footprint`). Camera and marker frames per URDF/calibration in the deployed launch.
+
+**GPIO (BCM)**
+
+| Signal | GPIO |
+|--------|------|
+| SG90 servo | 12 |
+| L298N ENA (PWM) | 13 |
+| L298N IN1 / IN2 | 25 / 8 |
+| HC-SR04 TRIG / ECHO | 24 / 23 |
+
+**Payload protocol**
+
+- **Downlink** (laptop → Pi): `A` → Station A routine; `B` → Station B routine (`rpilivecode.py`).
+- **Uplink** (Pi → laptop): `A COMPLETE`, `B COMPLETE` → `autopilot_node` mission flags; both flags set → mission-complete state.
 
 ## SUBSYSTEM DOCUMENTATIONS
 ### ELECTRICAL 
