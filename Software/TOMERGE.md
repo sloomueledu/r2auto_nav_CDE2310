@@ -8,7 +8,7 @@ The Software makes use of the Robot Operating System 2 (ROS2) Framework with ded
 The Flowchart below gives a High Level Description of the control flow for Navigation & Docking:  
 ![Control Flow FLowchart](./assets/Software%20Control%20Flow.png)
 
-### ArUco MARKER DETECTION & TRACKING  
+## ArUco MARKER DETECTION & TRACKING  
 **ArUco Marker Specifications:**  
 + **DICTIONARY:** 5X5, 250mm   
 
@@ -22,12 +22,12 @@ The Flowchart below gives a High Level Description of the control flow for Navig
 
 Details on the ROS2 Node for this purpose can be found here: [ros2_aruco](./Remote_Laptop/Live_Code/Aruco%20Marker%20Tracking/)
 
-### NAVIGATION & DOCKING  
+## NAVIGATION & DOCKING  
 Our Deployed Navigation & Docking Program is executed on an **ECL**. The codebase can be found here: [r2CDE2310_FINAL.py](./Remote_Laptop/Live_Code/r2CDE2310_FINAL.py)  
 
 We will break down the individual classes and functions in the `r2CDE2310_FINAL.py` codebase.  
 
-#### NAVIGATION  
+### NAVIGATION  
 Our Navigation Alogorithm Consists of Three Main Classes:  
 1. `RegulatedPurePursuit()`  
 1. `MapNode()`  
@@ -35,7 +35,7 @@ Our Navigation Alogorithm Consists of Three Main Classes:
 
 Let us breakdown each of the different classes.  
 
-##### RegulatedPurePursuit   
+#### RegulatedPurePursuit   
 As the name suggests, this is a helper class that makes use of Regulated Pure Pursuit Principles to calculate and return movement commands in order for the robot to reach a set goal point in a given path. The details of the class is as such:  
 
 **PARAMETERS**  
@@ -50,4 +50,5 @@ As the name suggests, this is a helper class that makes use of Regulated Pure Pu
 |`self.slow_turn_threshold`|Minimum Angle (in Radians) which the the TurtleBot3 will execute a slow turn to reach the waypoint|1.20|YES|
 |`self.rotate_threshold`|Minimum Angle (in Radians) which the TurtleBot3 will execute a spin on the spot to face the waypoint|2.60|YES|
 
-> **NOTE:** The maximum linear speed that the TurtleBot3 can reach is 0.22m/s. As such, for any values of `self.max_speed` greater than 0.22m/s will automatically be published as 0.22.
+> **NOTE:** The maximum linear speed that the TurtleBot3 can reach is 0.22m/s. As such, for any values of `self.max_speed` greater than 0.22m/s, it will automatically be published as 0.22.  
+
