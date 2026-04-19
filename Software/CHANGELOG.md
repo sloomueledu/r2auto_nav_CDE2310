@@ -46,4 +46,4 @@ REFINEMENTS: On the fly parameter change during final run for r2CDE2310_FINAL.py
 ## *v1.5.4*
 **Date:** 14 April 2026  
 **Description:**  
-FEATURE UPDATE: Added test files for algorithm research and comparison — r2livecode_v2.py (wall inflation + scored frontier + wall-safe smoothing), fulltest(astar).py (A* navigation), fulltest(astar+polardocking).py (A* + polar arc docking), fulltest(astar+3phasedocking).py (A* + 3-phase LiDAR docking), fulltest(3phasedocking).py (3-phase docking standalone), fulltest(polardocking_standalone).py (polar docking standalone)
+FEATURE UPDATE: Added test files used for making final algorithm — r2livecode_v2.py (wall inflation + scored frontier + wall-safe smoothing), fulltest(astar).py (A* navigation), fulltest(astar+polardocking).py (A* + polar arc docking), fulltest(astar+3phasedocking).py (A* + 3-phase LiDAR docking), fulltest(3phasedocking).py (3-phase docking standalone), fulltest(polardocking_standalone).py (polar docking standalone)
