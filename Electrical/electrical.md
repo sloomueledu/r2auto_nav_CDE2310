@@ -24,7 +24,7 @@
 ### L298N Motor Driver
 
 #### Power
-- VCC → 11.1V rail from OpenCR (battery rail)
+- VCC → 12V rail from OpenCR
 - GND → Common ground (OpenCR)
 
 #### Control Signals
@@ -64,7 +64,6 @@
 ## Raspberry Pi Pin Mapping
 
 Pin numbering follows the BCM (Broadcom SOC channel) convention.
-GPIO12 and GPIO13 are the dedicated hardware PWM pins on the Raspberry Pi 4B — use these for servo and motor enable to ensure precise timing. Software PWM on other pins will work but is less accurate.
 The OpenCR board connects to the Raspberry Pi via USB (`/dev/ttyACM0`) — it does not use any GPIO pin.
 
 | Category | Function           | GPIO (BCM) | Physical Pin | Description                          |
@@ -113,8 +112,28 @@ This section outlines how power is distributed throughout the system and how sig
     - USB camera → Raspberry Pi (image data)
     - USB2LDS → Raspberry Pi (LiDAR data)
 
+## Power Budget Analysis
+
+A power budget analysis was conducted to ensure that the system can operate reliably within the limits of the onboard battery.
+
+### System Assumptions
+- Power Source: 11.1V 3S LiPo Battery (1800mAh, ~19.98 Wh)
+- Regulator Efficiency: ~90% assumed for 5V logic components
+- Mission Duration: 25 minutes per run
+
+### Key Results
+- Total Energy Consumption per Mission: ~4.98 Wh
+- Estimated Number of Missions per Charge: ~4 full cycles
+
+### Observations
+- The majority of energy consumption occurs during the navigation phase due to continuous operation of the TurtleBot base, LiDAR, and camera.
+- High-power components such as the RS360 motor and L298N driver contribute significant power draw, but only for short durations during target engagement.
+- The system operates well within battery capacity, providing a sufficient safety margin for real-world inefficiencies.
+
+### Detailed Analysis
+[View Full Power Budget Analysis](Power%20Budget%20Analysis.pdf)
+
 ## Notes
 - Ensure all components share a **common ground** (OpenCR, Raspberry Pi, sensors, and L298N)
 - The voltage divider on the ECHO pin uses a **1kΩ and 2kΩ resistor** in series to step 5V down to ~3.3V — connecting the ECHO pin directly without this will damage the Raspberry Pi GPIO
-- GPIO12 and GPIO13 are the only hardware PWM pins on the Raspberry Pi 4B — these are used for the servo and motor enable respectively to ensure precise PWM timing
 - The OpenCR ↔ Raspberry Pi UART link runs the TurtleBot3 bringup (`ros2 launch turtlebot3_bringup robot.launch.py`) — this must be running for `/cmd_vel` and `/odom` topics to be active
