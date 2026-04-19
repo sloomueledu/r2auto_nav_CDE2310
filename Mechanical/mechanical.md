@@ -47,9 +47,11 @@ The mechanical system consists of:
 
 <img width="613" height="552" alt="image" src="https://github.com/user-attachments/assets/22c071a0-5618-4004-9890-f41c87f69485" />
 <br>
+<img width="743" height="504" alt="image" src="https://github.com/user-attachments/assets/4992d659-9515-44a5-a8b3-127f88a6708b" />
+<br>
 <img width="862" height="845" alt="image" src="https://github.com/user-attachments/assets/400238fd-27d2-4fff-b5d5-64da1a8a7249" />
 <br>
-<img width="743" height="504" alt="image" src="https://github.com/user-attachments/assets/4992d659-9515-44a5-a8b3-127f88a6708b" />
+<img width="1296" height="1358" alt="image" src="https://github.com/user-attachments/assets/17cdd61f-744b-4fdd-aac1-ae7d79a64ffe" />
 <br>
 
 ### Working Principle
