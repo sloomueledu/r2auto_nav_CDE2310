@@ -58,8 +58,10 @@ We have defined our requirements as such:
 
 ## SUBSYSTEM DOCUMENTATIONS
 ### ELECTRICAL 
+[Electrical Documentation](./Electrical/electrical.md)
 
-### MECHANICAL 
+### MECHANICAL
+[Mechanical Documentation](./Mechanical/mechanical.md)
 
 ## SOFTWARE CODEBASE   
 [Remote Laptop](./Software/Remote_Laptop/)   
