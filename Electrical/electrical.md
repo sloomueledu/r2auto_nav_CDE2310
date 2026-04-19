@@ -130,4 +130,4 @@ A power budget analysis was conducted to ensure that the system can operate reli
 ## Notes
 - Ensure all components share a **common ground** (OpenCR, Raspberry Pi, sensors, and L298N)
 - The voltage divider on the ECHO pin uses a **1kΩ and 2kΩ resistor** in series to step 5V down to ~3.3V — connecting the ECHO pin directly without this will damage the Raspberry Pi GPIO
-- The OpenCR ↔ Raspberry Pi UART link runs the TurtleBot3 bringup (`ros2 launch turtlebot3_bringup robot.launch.py`) — this must be running for `/cmd_vel` and `/odom` topics to be active
+- The OpenCR ↔ Raspberry Pi USB link runs the TurtleBot3 bringup (`ros2 launch turtlebot3_bringup robot.launch.py`) — this must be running for `/cmd_vel` and `/odom` topics to be active
