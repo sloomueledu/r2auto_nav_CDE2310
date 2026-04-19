@@ -160,7 +160,7 @@ The `AutoPilot` Class is arguably, the most important class in the entire `r2CDE
 
 **Path Planing Functions** 
 The Flowchart Below Gives a High-Level Breakdown of the process behind Path Planning:
-![Path Planing Algo](./assets/Planpathalgo.drawio.png)
+![Path Planing Algo](./assets/PathPlanAlgo.png)
 
 `planroute()`
 * Arguments:
@@ -176,7 +176,7 @@ The Flowchart Below Gives a High-Level Breakdown of the process behind Path Plan
     * `pooled_w`: Width of pooled map
     * `pooled_h`: Heigh of pooled map
     * `use_inflation`: Boolean to control whether the AStar search uses inflation
-> **Note: `occ_pooled` and `wall_dist` are the same as `planroute()`
+> **Note**: `occ_pooled` and `wall_dist` are the same as `planroute()`
 * Returns:
     * `path`: The raw path found to the Goal point, empty if otherwise
     * `True`: Sets `found_path` to True if a valid path is found, `False` otherwise
@@ -195,18 +195,35 @@ The Flowchart Below Gives a High-Level Breakdown of the process behind Path Plan
 
 **Obstacle Avoidance & Recovery Functions**
 The Flowchart Below Gives a High-Level Breakdown of the Obstacle Avoidance & Recovery Process:
-
+![Recovery Sequence](./assets/RecoverySequenceAlgo.png)
 
 `checkObstacles()`  
+* Returns:
+    * `True`: Obstacle Found
+    * `False`: No Obstacles Present
 
-`turn_in_place()`  
+`turn_in_place()`
+* Arguments:
+    * `target_angle`: Target Angle that the Robot Needs to face
+    * `current_angle`: Current Angle the Robot is Facing
+* Returns:
+    * Publishes a `twist` command to get the robot to spin in place in the desired direction
 
 `evaluate_escape_direction()`  
+* Returns:
+    * `-self.turn_in_place`: Indicates the Robot Should Spin in the **counter-clockwise** Direction (Left has larger Clearance)
+    * `self.turn_in_place`: Indicates that the Robot Should Spin in the **clockwise** direction (Right has larger clearance)
 
 `recoveryTurn()`  
+* Returns:
+    * `True`: Robot has **completed** recovery turn
+    * `False`: Robot has **not completed** recovery turn
 
-`recoverySequence()`  
+`recoverySequence()` 
+Sets `self.sate` to `ESCAPING` if the path ahead is clear after the recovery turn has been executed. If the robot encounters 3 or more obstacles along the path to the same goal point, the goal point will be reset and `planroute()` will plan a path to a different goal.
 
-## DOCKING  
+### DOCKING 
+
+##  
 
 
