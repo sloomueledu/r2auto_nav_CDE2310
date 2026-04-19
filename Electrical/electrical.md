@@ -55,6 +55,36 @@ Pin numbering follows the BCM (Broadcom SOC channel) convention
 | Sensor      | Ultrasonic TRIG      | GPIO24    | Trigger signal                    |
 | Sensor      | Ultrasonic ECHO      | GPIO23    | Via voltage divider (5V → 3.3V)   |
 
+## Power and Communication Architecture
+This section outlines how power is distributed throughout the system and how signals are communicated between components.
+
+### Power Architecture
+![Power Architecture](Power%20Architecture.png)
+
+*Figure: Power distribution across system components*
+
+- The system is powered by an 11.1V LiPo battery connected to the OpenCR board.
+- The OpenCR board distributes power to high-power components such as the L298N motor driver.
+- The Raspberry Pi provides a regulated 5V supply to low-power components including the SG90 servo, HC-SR04 ultrasonic sensor, and USB peripherals.
+- High-power components (e.g., RS360 motor) draw power through the L298N motor driver, which is supplied by the OpenCR.
+- All components share a common ground to ensure consistent voltage reference and reliable operation.
+
+---
+
+### Communication Architecture
+![Communication Architecture](Communication%20Architecture.png)
+
+*Figure: Communication and signal flow between system components*
+
+- The Raspberry Pi acts as the main controller, handling sensor processing, decision-making, and overall system logic.
+- The OpenCR board interfaces with the TurtleBot base and manages low-level hardware control.
+- GPIO is used for direct signal communication with:
+  - L298N motor driver (direction and speed control)
+  - SG90 servo (PWM control)
+  - HC-SR04 ultrasonic sensor (trigger and echo signals)
+- USB interfaces are used for high-bandwidth communication with the LiDAR and camera.
+- Communication between components is synchronized to ensure reliable system operation.
+
 ## Notes
 - Ensure all components share a **common ground** (OpenCR, Raspberry Pi, Sensors, and L298N)
 - A voltage divider is used on the ECHO pin to safely step down the signal from 5V to 3.3V using a 2:1 resistor ratio
