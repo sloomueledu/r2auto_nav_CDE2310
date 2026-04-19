@@ -342,10 +342,10 @@ Sets `self.sate` to `ESCAPING` if the path ahead is clear after the recovery tur
 **Path Execution**
 Path Execution is handled by the function `mover()` and the State Machine `controller()`. Below is a flowchart which explains their control flow:
 
-`mover()`:
+`mover()`:  
 ![mover()](./assets/Mover.png)
 
-`controller()`:
+`controller()`:   
 ![controller()](./assets/Controller.png)
 
 ## DOCKING
