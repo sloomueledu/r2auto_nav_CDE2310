@@ -17,8 +17,8 @@ The Flowchart below gives a High Level Description of the control flow for Navig
 + `/hdcam0/camera_info`: Camera Calibration Information of the USB Camera Used  
 
 **Publishers:**  
-+ `usbcam1_poses`: Detected ArUco Marker(s) respective Positional & Orientsation Data(s) with respect to the Camera's Frame  
-+ `usbcam1_markers`: Detected ArUco Marker(s) Identification Number (ID) and their respective Positional & Orientsation Data(s) with respect to the Camera's Frame  
++ `usbcam1_poses`: Detected ArUco Marker(s) respective Positional & Orientation Data(s) with respect to the Camera's Frame  
++ `usbcam1_markers`: Detected ArUco Marker(s) Identification Number (ID) and their respective Positional & Orientation Data(s) with respect to the Camera's Frame  
 
 Details on the ROS2 Node for this purpose can be found here: [ros2_aruco](./Remote_Laptop/Live_Code/Aruco%20Marker%20Tracking/)
 
