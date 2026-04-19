@@ -65,15 +65,16 @@
 
 Pin numbering follows the BCM (Broadcom SOC channel) convention.
 GPIO12 and GPIO13 are the dedicated hardware PWM pins on the Raspberry Pi 4B — use these for servo and motor enable to ensure precise timing. Software PWM on other pins will work but is less accurate.
+The OpenCR board connects to the Raspberry Pi via USB (`/dev/ttyACM0`) — it does not use any GPIO pin.
 
-| Category | Function           | GPIO (BCM) | Description                          |
-|----------|--------------------|------------|--------------------------------------|
-| PWM      | Servo Signal       | GPIO12     | Hardware PWM control for SG90 servo  |
-| PWM      | Motor Enable (ENA) | GPIO13     | Hardware PWM speed control for L298N |
-| Motor    | Direction IN1      | GPIO25     | Direction control input              |
-| Motor    | Direction IN2      | GPIO8      | Direction control input              |
-| Sensor   | Ultrasonic TRIG    | GPIO24     | Trigger signal                       |
-| Sensor   | Ultrasonic ECHO    | GPIO23     | Via voltage divider (5V → 3.3V)      |
+| Category | Function           | GPIO (BCM) | Physical Pin | Description                          |
+|----------|--------------------|------------|--------------|--------------------------------------|
+| PWM      | Servo Signal       | GPIO12     | Pin 32       | Hardware PWM control for SG90 servo  |
+| PWM      | Motor Enable (ENA) | GPIO13     | Pin 33       | Hardware PWM speed control for L298N |
+| Motor    | Direction IN1      | GPIO25     | Pin 22       | Direction control input              |
+| Motor    | Direction IN2      | GPIO8      | Pin 24       | Direction control input              |
+| Sensor   | Ultrasonic TRIG    | GPIO24     | Pin 18       | Trigger signal                       |
+| Sensor   | Ultrasonic ECHO    | GPIO23     | Pin 16       | Via voltage divider (5V → 3.3V)      |
 
 ## Power and Communication Architecture
 
