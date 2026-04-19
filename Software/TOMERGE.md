@@ -42,10 +42,12 @@ As the name suggests, this is a helper class that makes use of Regulated Pure Pu
 | PARAMETER | DESCRIPTION | CURRENT SETTING | TUNABLE |
 |---------|-----------|:-------------:|:-----:|
 |`self.lookaheaddist`|Distance which the controller uses to select the next target waypoint in a given path|0.35|YES|
-|`self.max_speed`|Maximum speed the TurtleBot3 can travel at|0.22|NO|
-|`self.min_speed`|Minimum speed the TurtleBot3 can travel at|0.04|YES|
+|`self.max_speed`|Maximum linear speed the TurtleBot3 can travel at|0.22|YES|
+|`self.min_speed`|Minimum linear speed the TurtleBot3 can travel at|0.04|YES|
 |`self.max_angular_v`|Maximum Angular Velocity of the TurtleBot3|0.60|YES|
 |`self.max_angular_v_hard`|Maximum Angular Velocity for Tight turns|1.0|YES|
-|`self.safety_factor`|Determines how fast or slow the TurtleBot3 Travels at depending on how steep the curavture is|YES|
+|`self.safety_factor`|Determines how fast or slow the TurtleBot3 Travels at depending on how steep the curavture is|3.0|YES|
 |`self.slow_turn_threshold`|Minimum Angle (in Radians) which the the TurtleBot3 will execute a slow turn to reach the waypoint|1.20|YES|
 |`self.rotate_threshold`|Minimum Angle (in Radians) which the TurtleBot3 will execute a spin on the spot to face the waypoint|2.60|YES|
+
+> **NOTE:** The maximum linear speed that the TurtleBot3 can reach is 0.22m/s. As such, for any values of `self.max_speed` greater than 0.22m/s will automatically be published as 0.22.
