@@ -2,8 +2,6 @@
 
 This folder contains the codebase which was used during the final mission as well as some prototype code used during development. It also contains the necessary documentation from the software development stage.
 
-> **Note:** This README covers the laptop-side navigation code only. The Raspberry Pi payload code (servo, motor driver, ultrasonic sensor) is documented separately in the `RPI` folder. For a full version history, refer to `CHANGELOG.md`.
-
 ---
 
 # Auto Navigation — Full Codebase Reference
