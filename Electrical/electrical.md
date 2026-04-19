@@ -5,13 +5,19 @@
 - L298N Motor Driver
 - SG90 Servo Motor
 - RS360 DC Motor
-
+- Ultrasonic Sensor
+  
 ## Connections
 ### SG90 Servo
 - VCC → 5V rail from Raspberry Pi  
 - GND → Common ground  
-- Signal → PWM-capable GPIO pin on Raspberry Pi  
-
+- Signal → PWM-capable GPIO pin on Raspberry Pi
+  
+### Ultrasonic Sensor- 
+- VCC → 5V rail from OpenCR board  
+- GND → Common ground  
+- Trig, Echo → GPIO pins on OpenCR
+  
 ### L298N Motor Driver
 #### Power
 - VCC → 12V rail from OpenCR  
@@ -24,4 +30,10 @@
 
 ## Notes
 - Ensure all components share a **common ground** (OpenCR, Raspberry Pi, and L298N).  
-- PWM is used to control motor speed and servo position.  
+- PWM is used to control motor speed and servo position.
+
+
+
+
+
+
