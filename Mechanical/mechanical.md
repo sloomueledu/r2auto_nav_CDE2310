@@ -109,7 +109,7 @@ The feeder mechanism controls how balls enter the shooting tube.
 
 ### 3. Launching Mechanism (Single Flywheel)
 
-- A **single flywheel motor ([motor name])** is mounted on the side of the shooting tube  
+- A **single flywheel motor (RS360)** is mounted on the side of the shooting tube  
 - The ball is pressed between the flywheel and the tube wall  
 
 #### Working Principle
@@ -124,6 +124,41 @@ The feeder mechanism controls how balls enter the shooting tube.
 - Requires careful tuning to ensure:
   - Sufficient launch speed  
   - Minimal deviation in trajectory  
+
+### Motor Selection (Flywheel)
+
+The flywheel motor was selected based on the required launch velocity to deliver a ping pong ball to the target at an approximate docking distance of 20 cm.
+
+#### Motor Specifications
+- Motor: RS360 DC Motor  
+- No-load Speed: 12000 RPM  
+
+#### Tangential Velocity Estimation
+Assuming a flywheel radius of approximately 20 mm (0.02 m):
+
+- Angular speed:
+  ω = 12000 × (2π / 60) ≈ 1256 rad/s  
+
+- Tangential velocity:
+  v = ωr ≈ 1256 × 0.02 ≈ 25.1 m/s  
+
+#### Practical Considerations
+- The theoretical velocity is significantly higher than required for a 20 cm horizontal launch.
+- In practice, several losses reduce the effective velocity:
+  - Motor load due to ball contact  
+  - Friction losses in the flywheel–ball interface  
+  - Voltage drop and inefficiency from the L298N motor driver  
+
+Assuming conservative efficiency losses of ~40–60%, the effective launch velocity remains well above the minimum required.
+
+#### Conclusion
+- The RS360 motor provides more than sufficient rotational speed for the application.
+- Excess speed is advantageous as it allows tuning via PWM control.
+- The motor speed is reduced using the ENA (enable) pin of the L298N driver to achieve:
+  - Improved launch consistency  
+  - Reduced variability in trajectory  
+
+This ensures the system operates within an optimal performance range rather than at maximum speed.
 
 **[insert zoomed-in view showing ball–flywheel contact region]**
 
@@ -195,23 +230,90 @@ The feeder mechanism controls how balls enter the shooting tube.
 
 ## Iterative Design Changes
 
-### Feeding Reliability Issues
-- Balls occasionally jammed at entry  
-**Fix:** Adjusted spacing and protrusion geometry on the rotating arm  
-
-### LiDAR Obstruction
-- Initial design partially blocked sensor  
-**Fix:** Raised LiDAR to a higher mounting position  
-
-### Structural Stability
-- Added layer introduced slight flexing  
-**Fix:** Reinforced supports and improved mounting using M4 fasteners  
-
-### Launch Consistency
-- Initial shots were inconsistent  
-**Fix:** Improved alignment of flywheel and shooting tube  
+The mechanical system underwent multiple design iterations to improve reliability, consistency, and overall performance.
 
 ---
+
+### Launch Consistency (Major Iteration)
+- Initial launches were inconsistent, with the ball deviating vertically after exiting the flywheel  
+- This reduced accuracy due to the small size of the payload target  
+
+**Fix:**  
+- Added a **guiding nozzle** after the flywheel to constrain the ball trajectory  
+
+**Result:**  
+- Significantly improved shot consistency  
+- Reduced vertical deviation  
+- Increased accuracy when targeting the payload hole  
+
+![Design Iteration](Diagrams/Iteration.png)
+
+---
+
+### Flywheel Configuration (Motor Reduction)
+- Initial design used **dual flywheel motors**, resulting in excessive speed, vibration, and unnecessary power usage  
+
+**Fix:**  
+- Simplified to a **single RS360 motor flywheel**  
+
+**Result:**  
+- Sufficient launch velocity maintained  
+- Reduced vibration and improved stability  
+- Lower power consumption  
+
+---
+
+### Feeding Reliability Issues
+- Balls occasionally jammed at the feeder entrance  
+
+**Fix:**  
+- Adjusted spacing and protrusion geometry on the rotating arm  
+
+**Result:**  
+- Reliable single-ball feeding  
+- Eliminated double-feeding and jamming  
+
+---
+
+### LiDAR Obstruction
+- Initial design partially blocked the LiDAR field of view  
+
+**Fix:**  
+- Raised LiDAR to a higher mounting position  
+
+**Result:**  
+- Restored full sensor visibility  
+- Improved navigation reliability  
+
+
+---
+
+## Fabrication & Assembly
+
+All custom mechanical components were **3D printed using PLA** on a **Bambu Lab A1 Mini** printer.
+
+### Print Settings
+- Nozzle Diameter: 0.6 mm  
+- Layer Height: 0.30 mm (standard profile)
+
+---
+
+### Fabrication Breakdown
+
+| Component | Print Time | Filament Used (g) |
+|----------|-----------|-------------------|
+| Spiral Housing (Part 1) | 5h 10min | 154.99 g |
+| Spiral Housing (Part 2) | 2h 43min | 92.73 g |
+| Spiral Housing (Part 3) | 3h 30min | 112.21 g |
+| Hex Nut Extenders (×2) | 21 min | 6.26 g |
+| Servo Gate Arm (Feeder Mechanism) | 26 min | 4.83 g |
+
+---
+
+### Notes
+- The spiral housing was printed in multiple parts to reduce print time and improve reliability  
+- Components were designed with tolerances to account for 3D printing inaccuracies  
+- PLA was selected for ease of fabrication and sufficient strength for the application  
 
 ## Final Design Summary
 
