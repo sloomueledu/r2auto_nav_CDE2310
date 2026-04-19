@@ -2,7 +2,7 @@
 
 This folder contains the codebase deployed on both the external laptop as well as the TurtleBot3 Raspberry Pi 4B.
 
-Path Planning — A*
+**Path Planning — A STAR**
 When the robot has a specific goal (a docking staging point or a BFS-found frontier), A* is used to find the optimal path through the maze.
 Cost function:
 
@@ -15,12 +15,16 @@ h(n) = Euclidean distance to goal
 
 
 The proximity_penalty makes cells close to walls expensive, so the path naturally hugs corridor centres rather than scraping along walls. 8-directional movement is used for smoother paths.
+
 The map is first downscaled 3× (max-pool) to reduce compute cost, and walls are dilated by 1 cell using binary_dilation before computing wall distances — this thickens thin wall features that might otherwise slip through the pooled grid.
-Wall inflation (controlled by INFLATE_RADIUS): cells within INFLATE_RADIUS pooled cells of any wall are skipped entirely during search. If A* fails with inflation enabled, it retries without — useful for tight corridors.
+
+**Wall inflation** (controlled by INFLATE_RADIUS): 
+Cells within INFLATE_RADIUS pooled cells of any wall are skipped entirely during search. If A* fails with inflation enabled, it retries without — useful for tight corridors.
 After A* returns a raw path, it goes through post-processing: LOS pruning removes redundant intermediate waypoints (if a straight line between two non-adjacent waypoints is clear, all points between are dropped), followed by a wall-repulsion shift that nudges each waypoint toward the corridor centre, and finally a wall-safe moving-average smooth that averages nearby waypoints but keeps the original if the smoothed position lands in a wall.
 
-Docking
+**Docking**
 Two docking approaches were implemented and tested.
+
 Polar Arc Docking (used in final evaluation)
 The robot uses ArUco pose data from the USB camera. In the camera frame, X = lateral offset and Z = forward distance. Two polar coordinates are computed each frame:
 
@@ -46,6 +50,7 @@ dock_target  = 0.30m        ← stop distance
 
 
 3-Phase LiDAR Docking (tested, not used in final)
+
 An alternative approach that navigates to a precomputed staging point rather than relying on continuous camera visibility.
 Phase 1 — DOCK_NAV: On marker detection, the marker’s Z-axis normal is extracted from the ArUco orientation quaternion and transformed into the map frame. A staging point 0.4m in front of the marker face is computed:
 
