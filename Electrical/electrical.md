@@ -2,11 +2,16 @@
 
 ## Components Used
 ### TurtleBot Components
+- OpenCR (32-bit ARM Cortex-M7)
+- Raspberry Pi
+- DYNAMIXEL Motor
+- 11.1V LiPo Battery
 - L298N Motor Driver
 - SG90 Servo Motor
 - RS360 DC Motor
 - HC-SR04 Ultrasonic Sensor
 - 720p USB Camera
+- 360 degree LiDAR
 
 ## Connections
 ### SG90 Servo
@@ -31,7 +36,10 @@
 - ECHO → Connected to GPIO via voltage divider (5V → 3.3V)
 
 ### USB Camera
-- Connected directly to the USB port of the Raspberry Pi  
+- Connected directly to the USB port of the Raspberry Pi
+
+### Lidar
+- Connected through USB2LDS to the USB port of the Raspberry Pi  
 
 ## Notes
 - Ensure all components share a **common ground** (OpenCR, Raspberry Pi, and L298N)
