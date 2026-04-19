@@ -42,7 +42,7 @@
 - Connected through USB2LDS to the USB port of the Raspberry Pi  
 
 ## Wiring Diagram
-![Electrical Wiring Diagram](Wiring%20Diagram.png)
+![Electrical Wiring Diagram](Electrical%20Diagrams/Wiring%20Diagram.png)
 
 ## Raspberry Pi Pin Mapping
 Pin numbering follows the BCM (Broadcom SOC channel) convention
@@ -59,12 +59,12 @@ Pin numbering follows the BCM (Broadcom SOC channel) convention
 This section outlines how power is distributed throughout the system and how signals are communicated between components.
 
 ### Power Architecture
-![Power Architecture](Power%20Architecture.png)
+![Power Architecture](Electrical%20Diagrams/Power%20Architecture.png)
 
 *Figure: Power distribution across system components*
 
 - The system is powered by an 11.1V LiPo battery connected to the OpenCR board.
-- The OpenCR board distributes power to high-power components such as the L298N motor driver.
+- The OpenCR board distributes power to high-power components such as the L298N motor driver, RaspberryPi, and Dynamixel Motors.
 - The Raspberry Pi provides a regulated 5V supply to low-power components including the SG90 servo, HC-SR04 ultrasonic sensor, and USB peripherals.
 - High-power components (e.g., RS360 motor) draw power through the L298N motor driver, which is supplied by the OpenCR.
 - All components share a common ground to ensure consistent voltage reference and reliable operation.
@@ -72,18 +72,23 @@ This section outlines how power is distributed throughout the system and how sig
 ---
 
 ### Communication Architecture
-![Communication Architecture](Communication%20Architecture.png)
+![Communication Architecture](Electrical%20Diagrams/Communication%20Architecture.png)
 
 *Figure: Communication and signal flow between system components*
 
 - The Raspberry Pi acts as the main controller, handling sensor processing, decision-making, and overall system logic.
-- The OpenCR board interfaces with the TurtleBot base and manages low-level hardware control.
-- GPIO is used for direct signal communication with:
-  - L298N motor driver (direction and speed control)
-  - SG90 servo (PWM control)
-  - HC-SR04 ultrasonic sensor (trigger and echo signals)
-- USB interfaces are used for high-bandwidth communication with the LiDAR and camera.
-- Communication between components is synchronized to ensure reliable system operation.
+- Communication interfaces are structured as follows:
+  - **GPIO / PWM (low-level control signals):**
+    - L298N motor driver (direction via digital output, speed via PWM)
+    - SG90 servo (PWM control)
+    - HC-SR04 ultrasonic sensor (TRIG/ECHO signals via GPIO)
+
+  - **USB (high-bandwidth data communication):**
+    - USB camera (image data acquisition)
+    - LiDAR via USB2LDS interface (sensor data acquisition)
+
+  - **USB (controller interfacing):**
+    - OpenCR board (communication with TurtleBot base and Dynamixel motors)
 
 ## Notes
 - Ensure all components share a **common ground** (OpenCR, Raspberry Pi, Sensors, and L298N)
