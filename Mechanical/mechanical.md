@@ -172,7 +172,7 @@ The feeder mechanism controls how balls enter the shooting tube.
 | Type | Pros | Cons | Decision |
 |------|------|------|----------|
 | Spring / Catapult | Simple | Inconsistent | ❌ |
-| Double Flywheel | Stable | More complex | ❌ |
+| Double Flywheel | Stable | More complex, inconsistent direction | ❌ |
 | Single Flywheel | Simple, compact | Needs tuning | ✅ |
 
 ---
