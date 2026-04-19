@@ -44,6 +44,17 @@
 ## Wiring Diagram
 ![Electrical Wiring Diagram](Images/wiring_diagram.png)
 
+## Raspberry Pi Pin Mapping
+Pin numbering follows the BCM (Broadcom SOC channel) convention
+| Category     | Function              | GPIO (BCM) | Description                       |
+|-------------|----------------------|-----------|-----------------------------------|
+| PWM         | Servo Signal         | GPIO12    | PWM control for SG90 servo        |
+| PWM         | Motor Enable (ENA)   | GPIO13    | PWM speed control for L298N       |
+| Motor       | Direction IN1        | GPIO25    | Direction control input           |
+| Motor       | Direction IN2        | GPIO8     | Direction control input           |
+| Sensor      | Ultrasonic TRIG      | GPIO24    | Trigger signal                    |
+| Sensor      | Ultrasonic ECHO      | GPIO23    | Via voltage divider (5V → 3.3V)   |
+
 ## Notes
 - Ensure all components share a **common ground** (OpenCR, Raspberry Pi, and L298N)
 - PWM is used to control motor speed and servo position
