@@ -288,6 +288,33 @@ The mechanical system underwent multiple design iterations to improve reliabilit
 
 ---
 
+## Fabrication & Assembly
+
+All custom mechanical components were **3D printed using PLA** on a **Bambu Lab A1 Mini** printer.
+
+### Print Settings
+- Nozzle Diameter: 0.6 mm  
+- Layer Height: 0.30 mm (standard profile)
+
+---
+
+### Fabrication Breakdown
+
+| Component | Print Time | Filament Used (g) |
+|----------|-----------|-------------------|
+| Spiral Housing (Part 1) | 5h 10min | 154.99 g |
+| Spiral Housing (Part 2) | 2h 43min | 92.73 g |
+| Spiral Housing (Part 3) | 3h 30min | 112.21 g |
+| Hex Nut Extenders (×2) | 21 min | 6.26 g |
+| Servo Gate Arm (Feeder Mechanism) | 26 min | 4.83 g |
+
+---
+
+### Notes
+- The spiral housing was printed in multiple parts to reduce print time and improve reliability  
+- Components were designed with tolerances to account for 3D printing inaccuracies  
+- PLA was selected for ease of fabrication and sufficient strength for the application  
+
 ## Final Design Summary
 
 <img width="855" height="837" alt="image" src="https://github.com/user-attachments/assets/57d1a183-fd47-4c57-80b2-5942f1e6d4ea" />
