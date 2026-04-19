@@ -45,6 +45,13 @@ The mechanical system consists of:
 - A **raised LiDAR mount**
 - A **multi-layer structural frame** to support all components
 
+<img width="613" height="552" alt="image" src="https://github.com/user-attachments/assets/22c071a0-5618-4004-9890-f41c87f69485" />
+<br>
+<img width="862" height="845" alt="image" src="https://github.com/user-attachments/assets/400238fd-27d2-4fff-b5d5-64da1a8a7249" />
+<br>
+<img width="743" height="504" alt="image" src="https://github.com/user-attachments/assets/4992d659-9515-44a5-a8b3-127f88a6708b" />
+<br>
+
 ### Working Principle
 1. Balls are stored in the inclined housing around the robot  
 2. Gravity guides balls toward the feeder entrance  
@@ -165,7 +172,7 @@ The feeder mechanism controls how balls enter the shooting tube.
 | Type | Pros | Cons | Decision |
 |------|------|------|----------|
 | Spring / Catapult | Simple | Inconsistent | ❌ |
-| Double Flywheel | Stable | More complex | ❌ |
+| Double Flywheel | Stable | More complex, inconsistent direction | ❌ |
 | Single Flywheel | Simple, compact | Needs tuning | ✅ |
 
 ---
@@ -204,6 +211,9 @@ The feeder mechanism controls how balls enter the shooting tube.
 ---
 
 ## Final Design Summary
+
+<img width="855" height="837" alt="image" src="https://github.com/user-attachments/assets/57d1a183-fd47-4c57-80b2-5942f1e6d4ea" />
+<br>
 
 The final mechanical system:
 - Stores 9 balls in an **inclined circular housing**
