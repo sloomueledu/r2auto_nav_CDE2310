@@ -38,11 +38,11 @@
 ### USB Camera
 - Connected directly to the USB port of the Raspberry Pi
 
-### Lidar
+### LiDAR
 - Connected through USB2LDS to the USB port of the Raspberry Pi  
 
 ## Wiring Diagram
-![Electrical Wiring Diagram](Images/wiring_diagram.png)
+![Electrical Wiring Diagram](Wiring%20Diagram.png)
 
 ## Raspberry Pi Pin Mapping
 Pin numbering follows the BCM (Broadcom SOC channel) convention
@@ -56,6 +56,5 @@ Pin numbering follows the BCM (Broadcom SOC channel) convention
 | Sensor      | Ultrasonic ECHO      | GPIO23    | Via voltage divider (5V → 3.3V)   |
 
 ## Notes
-- Ensure all components share a **common ground** (OpenCR, Raspberry Pi, and L298N)
-- PWM is used to control motor speed and servo position
-- A voltage divider is used on the ECHO pin to safely step down the signal from 5V to 3.3V
+- Ensure all components share a **common ground** (OpenCR, Raspberry Pi, Sensors, and L298N)
+- A voltage divider is used on the ECHO pin to safely step down the signal from 5V to 3.3V using a 2:1 resistor ratio
